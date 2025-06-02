@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import { Camera, Image as ImageIcon, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ExtractedItemsModal from "@/components/ExtractedItemsModal";
 
 interface ReceiptUploadModalProps {
   isOpen: boolean;
@@ -15,7 +16,14 @@ interface ReceiptUploadModalProps {
 export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadModalProps) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [extractedItems, setExtractedItems] = useState<any[]>([]);
+  const [showExtractedItems, setShowExtractedItems] = useState(false);
   const { toast } = useToast();
+
+  // Fetch categories for the extracted items modal
+  const { data: categories = [] } = useQuery({
+    queryKey: ["/api/categories"],
+  });
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -41,13 +49,9 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
         description: `${data.extractedItems?.length || 0}個の食材を検出しました`,
       });
       
-      // Invalidate food items cache to refresh the list
-      queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
-      
-      // Reset form and close modal
-      setSelectedFile(null);
-      setPreview(null);
-      onClose();
+      // Show extracted items for selection
+      setExtractedItems(data.extractedItems || []);
+      setShowExtractedItems(true);
     },
     onError: (error) => {
       if (isUnauthorizedError(error)) {
@@ -93,24 +97,36 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
   const handleClose = () => {
     setSelectedFile(null);
     setPreview(null);
+    setExtractedItems([]);
+    setShowExtractedItems(false);
+    onClose();
+  };
+
+  const handleExtractedItemsClose = () => {
+    setShowExtractedItems(false);
+    // Reset form and close main modal
+    setSelectedFile(null);
+    setPreview(null);
+    setExtractedItems([]);
     onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
-      <div className="bg-white rounded-t-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>レシートをスキャン</span>
-            <Button variant="ghost" size="sm" onClick={handleClose}>
-              <X className="w-4 h-4" />
-            </Button>
-          </CardTitle>
-        </CardHeader>
+    <>
+      <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">
+        <div className="bg-white rounded-t-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>レシートをスキャン</span>
+              <Button variant="ghost" size="sm" onClick={handleClose}>
+                <X className="w-4 h-4" />
+              </Button>
+            </CardTitle>
+          </CardHeader>
         
-        <CardContent>
+          <CardContent>
           {!selectedFile ? (
             <>
               {/* Upload Area */}
@@ -200,5 +216,14 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
         </CardContent>
       </div>
     </div>
+
+    {/* Extracted Items Modal */}
+    <ExtractedItemsModal
+      isOpen={showExtractedItems}
+      onClose={handleExtractedItemsClose}
+      extractedItems={extractedItems}
+      categories={categories}
+    />
+    </>
   );
 }
