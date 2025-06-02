@@ -8,6 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import ExtractedItemsModal from "@/components/ExtractedItemsModal";
 
+interface ExtractedItem {
+  name: string;
+  category: string;
+  quantity?: number;
+  unit?: string;
+}
+
 interface ReceiptUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,7 +57,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
       });
       
       // Show extracted items for selection
-      setExtractedItems(data.extractedItems || []);
+      setExtractedItems(Array.isArray(data.extractedItems) ? data.extractedItems : []);
       setShowExtractedItems(true);
     },
     onError: (error) => {
@@ -213,17 +220,17 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
               </div>
             </>
           )}
-        </CardContent>
+          </CardContent>
+        </div>
       </div>
-    </div>
 
-    {/* Extracted Items Modal */}
-    <ExtractedItemsModal
-      isOpen={showExtractedItems}
-      onClose={handleExtractedItemsClose}
-      extractedItems={extractedItems}
-      categories={categories}
-    />
+      {/* Extracted Items Modal */}
+      <ExtractedItemsModal
+        isOpen={showExtractedItems}
+        onClose={handleExtractedItemsClose}
+        extractedItems={extractedItems}
+        categories={categories || []}
+      />
     </>
   );
 }
