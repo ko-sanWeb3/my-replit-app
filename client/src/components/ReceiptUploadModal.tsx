@@ -229,7 +229,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
         isOpen={showExtractedItems}
         onClose={handleExtractedItemsClose}
         extractedItems={extractedItems}
-        categories={categories || []}
+        categories={Array.isArray(categories) ? categories : []}
       />
     </>
   );
