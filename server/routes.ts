@@ -195,11 +195,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/food-items', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
+      console.log("Creating food item with data:", { ...req.body, userId });
       const itemData = insertFoodItemSchema.parse({ ...req.body, userId });
       const item = await storage.createFoodItem(itemData);
       res.json(item);
     } catch (error) {
       console.error("Error creating food item:", error);
+      if (error instanceof Error && 'issues' in error) {
+        console.error("Validation errors:", error.issues);
+      }
       res.status(500).json({ message: "Failed to create food item" });
     }
   });

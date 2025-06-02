@@ -28,7 +28,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
   const { toast } = useToast();
 
   // Fetch categories for the extracted items modal
-  const { data: categories = [] } = useQuery({
+  const { data: categories } = useQuery({
     queryKey: ["/api/categories"],
   });
 

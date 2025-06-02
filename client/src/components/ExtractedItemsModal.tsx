@@ -3,12 +3,13 @@ import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { isUnauthorizedError } from "@/lib/authUtils";
-import { Check, X, Plus } from "lucide-react";
+import { Check, X, Plus, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface ExtractedItem {
   name: string;
@@ -32,7 +33,15 @@ export default function ExtractedItemsModal({
 }: ExtractedItemsModalProps) {
   const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
   const [itemCategories, setItemCategories] = useState<{ [key: number]: number }>({});
+  const [editingItems, setEditingItems] = useState<{ [key: number]: string }>({});
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const { toast } = useToast();
+
+  // 野菜の選択肢
+  const vegetableOptions = [
+    "トマト", "小松菜", "キャベツ", "にんじん", "玉ねぎ", 
+    "ピーマン", "きゅうり", "大根", "レタス", "その他の野菜"
+  ];
 
   // Find category ID by name
   const getCategoryId = (categoryName: string) => {
@@ -48,14 +57,23 @@ export default function ExtractedItemsModal({
     return category?.id || categories[0]?.id;
   };
 
-  // Initialize item categories
+  // Initialize item categories and names
   useState(() => {
     const initialCategories: { [key: number]: number } = {};
+    const initialNames: { [key: number]: string } = {};
     extractedItems.forEach((item, index) => {
       initialCategories[index] = getCategoryId(item.category);
+      initialNames[index] = item.name;
     });
     setItemCategories(initialCategories);
+    setEditingItems(initialNames);
   });
+
+  // Check if item name suggests it's a generic/unknown item
+  const isGenericItem = (name: string) => {
+    const genericTerms = ["直売", "産直", "野菜", "生鮮", "その他"];
+    return genericTerms.some(term => name.includes(term));
+  };
 
   const addItemsMutation = useMutation({
     mutationFn: async (items: any[]) => {
@@ -117,11 +135,18 @@ export default function ExtractedItemsModal({
     }));
   };
 
+  const handleItemNameChange = (index: number, newName: string) => {
+    setEditingItems(prev => ({
+      ...prev,
+      [index]: newName
+    }));
+  };
+
   const handleAddSelected = () => {
     const itemsToAdd = Array.from(selectedItems).map(index => {
       const item = extractedItems[index];
       return {
-        name: item.name,
+        name: editingItems[index] || item.name,
         categoryId: itemCategories[index],
         quantity: item.quantity || 1,
         unit: item.unit || "個",
@@ -171,7 +196,30 @@ export default function ExtractedItemsModal({
                         />
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
-                            <h3 className="font-medium">{item.name}</h3>
+                            {isGenericItem(item.name) ? (
+                              <div className="flex-1">
+                                <Select 
+                                  value={editingItems[index] || item.name} 
+                                  onValueChange={(value) => handleItemNameChange(index, value)}
+                                >
+                                  <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="野菜を選択してください" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {vegetableOptions.map((vegetable) => (
+                                      <SelectItem key={vegetable} value={vegetable}>
+                                        {vegetable}
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  元の名前: {item.name}
+                                </p>
+                              </div>
+                            ) : (
+                              <h3 className="font-medium">{editingItems[index] || item.name}</h3>
+                            )}
                             {item.quantity && (
                               <Badge variant="secondary" className="text-xs">
                                 {item.quantity}{item.unit || "個"}
