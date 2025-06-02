@@ -125,8 +125,11 @@ export default function ExtractedItemsModal({
         categoryId: itemCategories[index],
         quantity: item.quantity || 1,
         unit: item.unit || "個",
-        // Set expiry date to 7 days from now as default
         expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+        calories: 0,
       };
     });
 
