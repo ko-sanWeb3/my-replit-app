@@ -3,6 +3,17 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
+
+// Debug middleware to capture raw request data
+app.use('/api/food-items', (req: any, res, next) => {
+  console.log('=== Food Items Request Debug ===');
+  console.log('Method:', req.method);
+  console.log('Headers:', req.headers);
+  console.log('Content-Type:', req.get('Content-Type'));
+  console.log('Content-Length:', req.get('Content-Length'));
+  next();
+});
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
