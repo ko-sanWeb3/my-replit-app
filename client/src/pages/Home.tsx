@@ -2,9 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { isUnauthorizedError } from "@/lib/authUtils";
 import { Bell, Camera, ExternalLink, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,25 +13,9 @@ import FoodItemCard from "@/components/FoodItemCard";
 import BottomNavigation from "@/components/BottomNavigation";
 
 export default function Home() {
-  const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
 
   // Initialize categories mutation
   const initCategoriesMutation = useMutation({
@@ -45,17 +27,6 @@ export default function Home() {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
     },
     onError: (error) => {
-      if (isUnauthorizedError(error)) {
-        toast({
-          title: "Unauthorized",
-          description: "You are logged out. Logging in again...",
-          variant: "destructive",
-        });
-        setTimeout(() => {
-          window.location.href = "/api/login";
-        }, 500);
-        return;
-      }
       toast({
         title: "Error",
         description: "Failed to initialize categories",
@@ -67,33 +38,29 @@ export default function Home() {
   // Fetch categories
   const { data: categories = [] } = useQuery({
     queryKey: ["/api/categories"],
-    enabled: isAuthenticated,
   });
 
   // Fetch food items
   const { data: allFoodItems = [] } = useQuery({
     queryKey: ["/api/food-items"],
-    enabled: isAuthenticated,
   });
 
   // Fetch shopping items
   const { data: shoppingItems = [] } = useQuery({
     queryKey: ["/api/shopping-items"],
-    enabled: isAuthenticated,
   });
 
   // Fetch nutrition summary
   const { data: nutritionSummary } = useQuery({
     queryKey: ["/api/nutrition/summary"],
-    enabled: isAuthenticated,
   });
 
   // Initialize categories on first load
   useEffect(() => {
-    if (isAuthenticated && categories.length === 0) {
+    if (categories.length === 0) {
       initCategoriesMutation.mutate();
     }
-  }, [isAuthenticated, categories.length]);
+  }, [categories.length]);
 
   // Get expiring items (items expiring in next 3 days)
   const expiringItems = allFoodItems.filter((item: any) => {
@@ -115,13 +82,7 @@ export default function Home() {
     day: "numeric",
   });
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
@@ -145,13 +106,7 @@ export default function Home() {
                 </div>
               )}
             </button>
-            {user?.profileImageUrl && (
-              <img 
-                src={user.profileImageUrl} 
-                alt="Profile" 
-                className="w-8 h-8 rounded-full object-cover border-2 border-gray-200"
-              />
-            )}
+
           </div>
         </div>
       </header>

@@ -346,7 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/shopping-items/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/shopping-items/:id', async (req: any, res) => {
     try {
       const { id } = req.params;
       const updates = req.body;
@@ -358,7 +358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/shopping-items/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/shopping-items/:id', async (req: any, res) => {
     try {
       const { id } = req.params;
       await storage.deleteShoppingItem(parseInt(id));
@@ -370,9 +370,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Receipt OCR route
-  app.post('/api/receipts/analyze', isAuthenticated, upload.single('receipt'), async (req: any, res) => {
+  app.post('/api/receipts/analyze', upload.single('receipt'), async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       
       if (!req.file) {
         return res.status(400).json({ message: "No receipt image provided" });
@@ -402,9 +402,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Nutrition summary route
-  app.get('/api/nutrition/summary', isAuthenticated, async (req: any, res) => {
+  app.get('/api/nutrition/summary', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       const items = await storage.getAllFoodItems(userId);
       
       // Calculate total nutrition (simplified calculation)
