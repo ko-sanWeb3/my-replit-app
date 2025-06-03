@@ -149,9 +149,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Category routes
-  app.get('/api/categories', isAuthenticated, async (req: any, res) => {
+  app.get('/api/categories', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest"; // Use guest user for demo
       const categories = await storage.getUserCategories(userId);
       res.json(categories);
     } catch (error) {
@@ -160,9 +160,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/categories', isAuthenticated, async (req: any, res) => {
+  app.post('/api/categories', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       const categoryData = insertCategorySchema.parse({ ...req.body, userId });
       const category = await storage.createCategory(categoryData);
       res.json(category);
@@ -173,9 +173,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Food item routes
-  app.get('/api/food-items', isAuthenticated, async (req: any, res) => {
+  app.get('/api/food-items', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       const { categoryId } = req.query;
       
       let items;
@@ -192,9 +192,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/food-items', isAuthenticated, async (req: any, res) => {
+  app.post('/api/food-items', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       console.log("Raw request body:", req.body);
       console.log("User ID:", userId);
       console.log("Content-Type:", req.get('Content-Type'));
@@ -216,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put('/api/food-items/:id', isAuthenticated, async (req: any, res) => {
+  app.put('/api/food-items/:id', async (req: any, res) => {
     try {
       const { id } = req.params;
       const updates = req.body;
@@ -228,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/food-items/:id', isAuthenticated, async (req: any, res) => {
+  app.delete('/api/food-items/:id', async (req: any, res) => {
     try {
       const { id } = req.params;
       await storage.deleteFoodItem(parseInt(id));
@@ -239,9 +239,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/food-items/expiring', isAuthenticated, async (req: any, res) => {
+  app.get('/api/food-items/expiring', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       const days = parseInt(req.query.days as string) || 3;
       const items = await storage.getExpiringItems(userId, days);
       res.json(items);
@@ -252,9 +252,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Fix expiry dates for existing items
-  app.post('/api/food-items/fix-expiry-dates', isAuthenticated, async (req: any, res) => {
+  app.post('/api/food-items/fix-expiry-dates', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       const allItems = await storage.getAllFoodItems(userId);
       
       const getExpiryDays = (itemName: string, categoryId: number): number => {
@@ -323,9 +323,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Shopping list routes
-  app.get('/api/shopping-items', isAuthenticated, async (req: any, res) => {
+  app.get('/api/shopping-items', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       const items = await storage.getShoppingItems(userId);
       res.json(items);
     } catch (error) {
@@ -334,9 +334,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/shopping-items', isAuthenticated, async (req: any, res) => {
+  app.post('/api/shopping-items', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = "guest";
       const itemData = insertShoppingItemSchema.parse({ ...req.body, userId });
       const item = await storage.createShoppingItem(itemData);
       res.json(item);
