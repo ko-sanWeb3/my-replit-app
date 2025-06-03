@@ -251,6 +251,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fix expiry dates for existing items
+  app.post('/api/food-items/fix-expiry-dates', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const allItems = await storage.getAllFoodItems(userId);
+      
+      const getExpiryDays = (itemName: string, categoryId: number): number => {
+        const name = itemName.toLowerCase();
+        
+        // 肉類 (categoryId 4 = チルド)
+        if (categoryId === 4 || name.includes('肉') || name.includes('ミンチ')) {
+          return 3; // 3日
+        }
+        
+        // 野菜類
+        if (categoryId === 1) {
+          if (name.includes('レタス') || name.includes('小松菜') || name.includes('キャベツ')) {
+            return 5; // 葉物野菜 5日
+          }
+          if (name.includes('たまねぎ') || name.includes('にんにく') || name.includes('じゃがいも')) {
+            return 30; // 根菜類 30日
+          }
+          if (name.includes('トマト') || name.includes('きゅうり')) {
+            return 7; // 一般野菜 7日
+          }
+          if (name.includes('しいたけ') || name.includes('きのこ')) {
+            return 4; // きのこ類 4日
+          }
+          return 7; // その他野菜
+        }
+        
+        // 飲み物 (categoryId 2)
+        if (categoryId === 2) {
+          if (name.includes('綾鷹') || name.includes('お茶') || name.includes('ペット')) {
+            return 60; // ペットボトル飲料 60日
+          }
+          if (name.includes('牛乳') || name.includes('ミルク')) {
+            return 5; // 牛乳 5日
+          }
+          return 30; // その他飲み物
+        }
+        
+        // 果物
+        if (name.includes('レモン') || name.includes('りんご')) {
+          return 14; // 柑橘類・りんご 14日
+        }
+        if (name.includes('キウイ') || name.includes('バナナ')) {
+          return 7; // その他果物 7日
+        }
+        
+        return 7; // デフォルト
+      };
+
+      const updatedItems = [];
+      for (const item of allItems) {
+        const expiryDays = getExpiryDays(item.name, item.categoryId);
+        const newExpiryDate = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        
+        const updatedItem = await storage.updateFoodItem(item.id, {
+          expiryDate: newExpiryDate
+        });
+        updatedItems.push(updatedItem);
+      }
+      
+      res.json({ message: "Expiry dates updated", updatedCount: updatedItems.length });
+    } catch (error) {
+      console.error("Error fixing expiry dates:", error);
+      res.status(500).json({ message: "Failed to fix expiry dates" });
+    }
+  });
+
   // Shopping list routes
   app.get('/api/shopping-items', isAuthenticated, async (req: any, res) => {
     try {
