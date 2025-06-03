@@ -65,8 +65,10 @@ export default function FoodItemCard({ item, showFullInfo = false }: FoodItemCar
       "鶏肉": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=80&h=80&fit=crop&crop=center",
       
       // 飲み物
-      "綾鷹": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=80&h=80&fit=crop&crop=center",
-      "お茶": "https://images.unsplash.com/photo-1556679343-c7306c1976bc?w=80&h=80&fit=crop&crop=center",
+      "綾鷹": "https://images.unsplash.com/photo-1549595745-198805c828bf?w=80&h=80&fit=crop&crop=center",
+      "お茶": "https://images.unsplash.com/photo-1549595745-198805c828bf?w=80&h=80&fit=crop&crop=center",
+      "緑茶": "https://images.unsplash.com/photo-1549595745-198805c828bf?w=80&h=80&fit=crop&crop=center",
+      "ペットボトル": "https://images.unsplash.com/photo-1549595745-198805c828bf?w=80&h=80&fit=crop&crop=center",
       "水": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=80&h=80&fit=crop&crop=center",
     };
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +17,7 @@ import BottomNavigation from "@/components/BottomNavigation";
 export default function Home() {
   const { user, isAuthenticated, isLoading } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
 
   // Redirect if not authenticated
@@ -244,6 +246,7 @@ export default function Home() {
                           variant="ghost" 
                           className="w-full mt-3" 
                           style={{ color: category.color }}
+                          onClick={() => setLocation("/inventory")}
                         >
                           すべて表示 ({totalItems}点)
                         </Button>
