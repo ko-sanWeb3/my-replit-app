@@ -103,25 +103,13 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
-
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
-    try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
-    } catch (error) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
-    }
-  });
+  // Guest user ID for demo purposes
+  const GUEST_USER_ID = "guest_user";
 
   // Initialize default categories for new users
-  app.post('/api/categories/init', isAuthenticated, async (req: any, res) => {
+  app.post('/api/categories/init', async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = GUEST_USER_ID;
       
       // Check if user already has categories
       const existingCategories = await storage.getUserCategories(userId);
@@ -151,7 +139,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Category routes
   app.get('/api/categories', async (req: any, res) => {
     try {
-      const userId = "guest"; // Use guest user for demo
+      const userId = GUEST_USER_ID;
       const categories = await storage.getUserCategories(userId);
       res.json(categories);
     } catch (error) {
@@ -162,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/categories', async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       const categoryData = insertCategorySchema.parse({ ...req.body, userId });
       const category = await storage.createCategory(categoryData);
       res.json(category);
@@ -175,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Food item routes
   app.get('/api/food-items', async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       const { categoryId } = req.query;
       
       let items;
@@ -194,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/food-items', async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       console.log("Raw request body:", req.body);
       console.log("User ID:", userId);
       console.log("Content-Type:", req.get('Content-Type'));
