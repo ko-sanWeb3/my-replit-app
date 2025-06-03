@@ -195,8 +195,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/food-items', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      console.log("Creating food item with data:", { ...req.body, userId });
-      const itemData = insertFoodItemSchema.parse({ ...req.body, userId });
+      console.log("Raw request body:", req.body);
+      console.log("User ID:", userId);
+      console.log("Content-Type:", req.get('Content-Type'));
+      
+      const dataToValidate = { ...req.body, userId };
+      console.log("Data to validate:", dataToValidate);
+      
+      const itemData = insertFoodItemSchema.parse(dataToValidate);
+      console.log("Validated data:", itemData);
+      
       const item = await storage.createFoodItem(itemData);
       res.json(item);
     } catch (error) {
