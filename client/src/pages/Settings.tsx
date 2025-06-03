@@ -1,42 +1,8 @@
-import { useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, LogOut, User, Bell, Palette } from "lucide-react";
+import { Settings as SettingsIcon, User, Bell, Palette } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import BottomNavigation from "@/components/BottomNavigation";
 
 export default function Settings() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-  const { toast } = useToast();
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      toast({
-        title: "Unauthorized",
-        description: "You are logged out. Logging in again...",
-        variant: "destructive",
-      });
-      setTimeout(() => {
-        window.location.href = "/api/login";
-      }, 500);
-      return;
-    }
-  }, [isAuthenticated, isLoading, toast]);
-
-  const handleLogout = () => {
-    window.location.href = "/api/logout";
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
@@ -60,21 +26,12 @@ export default function Settings() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center space-x-4">
-              {user?.profileImageUrl && (
-                <img 
-                  src={user.profileImageUrl} 
-                  alt="Profile" 
-                  className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
-                />
-              )}
+              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
+                <User className="w-8 h-8 text-gray-400" />
+              </div>
               <div>
-                <p className="font-medium text-gray-800">
-                  {user?.firstName || user?.lastName 
-                    ? `${user.firstName || ""} ${user.lastName || ""}`.trim()
-                    : "ユーザー"
-                  }
-                </p>
-                <p className="text-sm text-gray-500">{user?.email || "メールアドレス未設定"}</p>
+                <p className="font-medium text-gray-800">ゲストユーザー</p>
+                <p className="text-sm text-gray-500">体験版でご利用中</p>
               </div>
             </div>
           </CardContent>
@@ -115,15 +72,15 @@ export default function Settings() {
           </CardContent>
         </Card>
 
-        {/* Logout Button */}
-        <Button 
-          onClick={handleLogout}
-          variant="destructive"
-          className="w-full flex items-center space-x-2"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>ログアウト</span>
-        </Button>
+        {/* App Info */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-center space-y-2">
+              <p className="text-sm text-gray-600">体験版モード</p>
+              <p className="text-xs text-gray-400">すべての機能をお試しいただけます</p>
+            </div>
+          </CardContent>
+        </Card>
       </main>
 
       {/* Bottom Navigation */}
