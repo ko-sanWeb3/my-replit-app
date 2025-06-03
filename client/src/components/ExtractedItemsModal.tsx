@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -58,16 +58,20 @@ export default function ExtractedItemsModal({
   };
 
   // Initialize item categories and names
-  useState(() => {
-    const initialCategories: { [key: number]: number } = {};
-    const initialNames: { [key: number]: string } = {};
-    extractedItems.forEach((item, index) => {
-      initialCategories[index] = getCategoryId(item.category);
-      initialNames[index] = item.name;
-    });
-    setItemCategories(initialCategories);
-    setEditingItems(initialNames);
-  });
+  useEffect(() => {
+    if (extractedItems.length > 0 && categories.length > 0) {
+      const initialCategories: { [key: number]: number } = {};
+      const initialNames: { [key: number]: string } = {};
+      extractedItems.forEach((item, index) => {
+        const categoryId = getCategoryId(item.category);
+        initialCategories[index] = categoryId;
+        initialNames[index] = item.name;
+        console.log(`Item ${index}: ${item.name} -> Category ID: ${categoryId}`);
+      });
+      setItemCategories(initialCategories);
+      setEditingItems(initialNames);
+    }
+  }, [extractedItems, categories]);
 
   // Check if item name suggests it's a generic/unknown item
   const isGenericItem = (name: string) => {
@@ -145,10 +149,28 @@ export default function ExtractedItemsModal({
   const handleAddSelected = () => {
     const itemsToAdd = Array.from(selectedItems).map(index => {
       const item = extractedItems[index];
+      const itemName = editingItems[index] || item.name;
+      const categoryId = itemCategories[index];
+      
+      console.log("Creating item:", { 
+        name: itemName, 
+        categoryId, 
+        index, 
+        originalItem: item,
+        editingItems: editingItems[index],
+        categories: itemCategories[index]
+      });
+      
+      // Ensure we have valid data
+      if (!itemName || !categoryId) {
+        console.error("Invalid item data:", { name: itemName, categoryId });
+        return null;
+      }
+      
       return {
-        name: editingItems[index] || item.name,
-        categoryId: itemCategories[index],
-        quantity: item.quantity || 1,
+        name: itemName,
+        categoryId: Number(categoryId),
+        quantity: Number(item.quantity) || 1,
         unit: item.unit || "個",
         expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         protein: 0,
@@ -156,8 +178,9 @@ export default function ExtractedItemsModal({
         fats: 0,
         calories: 0,
       };
-    });
+    }).filter(item => item !== null);
 
+    console.log("Items to add:", itemsToAdd);
     addItemsMutation.mutate(itemsToAdd);
   };
 
