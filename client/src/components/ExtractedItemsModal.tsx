@@ -81,16 +81,23 @@ export default function ExtractedItemsModal({
 
   const addItemsMutation = useMutation({
     mutationFn: async (items: any[]) => {
-      const promises = items.map(item => 
-        apiRequest("POST", "/api/food-items", {
-          body: JSON.stringify(item),
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-      );
-      
-      return Promise.all(promises);
+      const results = [];
+      for (const item of items) {
+        try {
+          console.log("Sending item to server:", item);
+          const result = await apiRequest("POST", "/api/food-items", {
+            body: JSON.stringify(item),
+            headers: {
+              "Content-Type": "application/json",
+            },
+          });
+          results.push(result);
+        } catch (error) {
+          console.error("Error adding item:", item, error);
+          throw error;
+        }
+      }
+      return results;
     },
     onSuccess: () => {
       toast({
