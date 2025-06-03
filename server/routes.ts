@@ -106,6 +106,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Guest user ID for demo purposes
   const GUEST_USER_ID = "guest_user";
 
+  // Ensure guest user exists
+  try {
+    let guestUser = await storage.getUser(GUEST_USER_ID);
+    if (!guestUser) {
+      await storage.upsertUser({
+        id: GUEST_USER_ID,
+        email: "guest@example.com",
+        firstName: "Guest",
+        lastName: "User",
+        profileImageUrl: null,
+      });
+    }
+  } catch (error) {
+    console.log("Creating guest user...");
+  }
+
   // Initialize default categories for new users
   app.post('/api/categories/init', async (req: any, res) => {
     try {
@@ -229,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/food-items/expiring', async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       const days = parseInt(req.query.days as string) || 3;
       const items = await storage.getExpiringItems(userId, days);
       res.json(items);
@@ -242,7 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fix expiry dates for existing items
   app.post('/api/food-items/fix-expiry-dates', async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       const allItems = await storage.getAllFoodItems(userId);
       
       const getExpiryDays = (itemName: string, categoryId: number): number => {
@@ -313,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shopping list routes
   app.get('/api/shopping-items', async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       const items = await storage.getShoppingItems(userId);
       res.json(items);
     } catch (error) {
@@ -324,7 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/shopping-items', async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       const itemData = insertShoppingItemSchema.parse({ ...req.body, userId });
       const item = await storage.createShoppingItem(itemData);
       res.json(item);
@@ -360,7 +376,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Receipt OCR route
   app.post('/api/receipts/analyze', upload.single('receipt'), async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       
       if (!req.file) {
         return res.status(400).json({ message: "No receipt image provided" });
@@ -392,7 +408,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Nutrition summary route
   app.get('/api/nutrition/summary', async (req: any, res) => {
     try {
-      const userId = "guest";
+      const userId = GUEST_USER_ID;
       const items = await storage.getAllFoodItems(userId);
       
       // Calculate total nutrition (simplified calculation)
