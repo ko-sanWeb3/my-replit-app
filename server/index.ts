@@ -4,6 +4,20 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
+// 認証システムを完全に無効化
+delete process.env.REPLIT_DOMAINS;
+delete process.env.REPL_ID;
+delete process.env.SESSION_SECRET;
+delete process.env.ISSUER_URL;
+
+// すべての認証関連ミドルウェアを無効化
+app.use((req, res, next) => {
+  // 認証チェックを強制的にスキップ
+  req.isAuthenticated = () => false;
+  req.user = null;
+  next();
+});
+
 // Debug middleware to capture raw request data
 app.use('/api/food-items', (req: any, res, next) => {
   console.log('=== Food Items Request Debug ===');
