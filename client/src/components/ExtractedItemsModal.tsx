@@ -85,12 +85,7 @@ export default function ExtractedItemsModal({
       for (const item of items) {
         try {
           console.log("Sending item to server:", item);
-          const result = await apiRequest("POST", "/api/food-items", {
-            body: JSON.stringify(item),
-            headers: {
-              "Content-Type": "application/json",
-            },
-          });
+          const result = await apiRequest("POST", "/api/food-items", item);
           results.push(result);
         } catch (error) {
           console.error("Error adding item:", item, error);
