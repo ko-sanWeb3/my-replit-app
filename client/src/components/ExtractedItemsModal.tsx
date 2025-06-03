@@ -148,6 +148,53 @@ export default function ExtractedItemsModal({
     }));
   };
 
+  const getExpiryDays = (itemName: string, categoryId: number): number => {
+    const name = itemName.toLowerCase();
+    
+    // 肉類 (categoryId 4 = チルド)
+    if (categoryId === 4 || name.includes('肉') || name.includes('ミンチ')) {
+      return 3; // 3日
+    }
+    
+    // 野菜類
+    if (categoryId === 1) {
+      if (name.includes('レタス') || name.includes('小松菜') || name.includes('キャベツ')) {
+        return 5; // 葉物野菜 5日
+      }
+      if (name.includes('たまねぎ') || name.includes('にんにく') || name.includes('じゃがいも')) {
+        return 30; // 根菜類 30日
+      }
+      if (name.includes('トマト') || name.includes('きゅうり')) {
+        return 7; // 一般野菜 7日
+      }
+      if (name.includes('しいたけ') || name.includes('きのこ')) {
+        return 4; // きのこ類 4日
+      }
+      return 7; // その他野菜
+    }
+    
+    // 飲み物 (categoryId 2)
+    if (categoryId === 2) {
+      if (name.includes('綾鷹') || name.includes('お茶') || name.includes('ペット')) {
+        return 60; // ペットボトル飲料 60日
+      }
+      if (name.includes('牛乳') || name.includes('ミルク')) {
+        return 5; // 牛乳 5日
+      }
+      return 30; // その他飲み物
+    }
+    
+    // 果物
+    if (name.includes('レモン') || name.includes('りんご')) {
+      return 14; // 柑橘類・りんご 14日
+    }
+    if (name.includes('キウイ') || name.includes('バナナ')) {
+      return 7; // その他果物 7日
+    }
+    
+    return 7; // デフォルト
+  };
+
   const handleAddSelected = () => {
     const itemsToAdd = Array.from(selectedItems).map(index => {
       const item = extractedItems[index];
@@ -169,12 +216,15 @@ export default function ExtractedItemsModal({
         return null;
       }
       
+      const expiryDays = getExpiryDays(itemName, Number(categoryId));
+      const expiryDate = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
       return {
         name: itemName,
         categoryId: Number(categoryId),
         quantity: Number(item.quantity) || 1,
         unit: item.unit || "個",
-        expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        expiryDate: expiryDate,
         protein: 0,
         carbs: 0,
         fats: 0,

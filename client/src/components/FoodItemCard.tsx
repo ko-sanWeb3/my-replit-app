@@ -40,7 +40,7 @@ export default function FoodItemCard({ item, showFullInfo = false }: FoodItemCar
       // 野菜
       "トマト": "https://images.unsplash.com/photo-1592924357228-91a4daadcfea?w=80&h=80&fit=crop&crop=center",
       "たまねぎ": "https://images.unsplash.com/photo-1508747703725-719777637510?w=80&h=80&fit=crop&crop=center",
-      "にんにく": "https://images.unsplash.com/photo-1585734811961-ed507c8e5deb?w=80&h=80&fit=crop&crop=center",
+      "にんにく": "https://images.unsplash.com/photo-1553978297-833d09932d91?w=80&h=80&fit=crop&crop=center",
       "レタス": "https://images.unsplash.com/photo-1622206151226-18ca2c9ab4a1?w=80&h=80&fit=crop&crop=center",
       "小松菜": "https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=80&h=80&fit=crop&crop=center",
       "キャベツ": "https://images.unsplash.com/photo-1594282486552-05b4d80fbb9f?w=80&h=80&fit=crop&crop=center",
@@ -54,7 +54,7 @@ export default function FoodItemCard({ item, showFullInfo = false }: FoodItemCar
       "しいたけ": "https://images.unsplash.com/photo-1506976785307-8732e854ad03?w=80&h=80&fit=crop&crop=center",
       
       // 果物
-      "レモン": "https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=80&h=80&fit=crop&crop=center",
+      "レモン": "https://images.unsplash.com/photo-1574623452334-1e0ac2b3ccb4?w=80&h=80&fit=crop&crop=center",
       "キウイフルーツ": "https://images.unsplash.com/photo-1585059895524-72359e06133a?w=80&h=80&fit=crop&crop=center",
       "りんご": "https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=80&h=80&fit=crop&crop=center",
       
@@ -65,10 +65,10 @@ export default function FoodItemCard({ item, showFullInfo = false }: FoodItemCar
       "鶏肉": "https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=80&h=80&fit=crop&crop=center",
       
       // 飲み物
-      "綾鷹": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=80&h=80&fit=crop&crop=center",
-      "お茶": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=80&h=80&fit=crop&crop=center",
-      "緑茶": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=80&h=80&fit=crop&crop=center",
-      "ペットボトル": "https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=80&h=80&fit=crop&crop=center",
+      "綾鷹": "https://images.unsplash.com/photo-1481349518771-20055b2a7b24?w=80&h=80&fit=crop&crop=center",
+      "お茶": "https://images.unsplash.com/photo-1481349518771-20055b2a7b24?w=80&h=80&fit=crop&crop=center",
+      "緑茶": "https://images.unsplash.com/photo-1481349518771-20055b2a7b24?w=80&h=80&fit=crop&crop=center",
+      "ペットボトル": "https://images.unsplash.com/photo-1481349518771-20055b2a7b24?w=80&h=80&fit=crop&crop=center",
       "水": "https://images.unsplash.com/photo-1523362628745-0c100150b504?w=80&h=80&fit=crop&crop=center",
     };
 
