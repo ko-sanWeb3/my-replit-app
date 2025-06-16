@@ -109,8 +109,9 @@ export const getFoodIcon = (foodName: string): string => {
     return '🍚';
   }
   
-  // 調味料・油
-  if (name.includes('油') || name.includes('オイル') || name.includes('oil')) {
+  // 調味料・油（油揚げは除外）
+  if ((name.includes('油') || name.includes('オイル') || name.includes('oil')) && 
+      !name.includes('油揚げ') && !name.includes('厚揚げ')) {
     return '🛢️';
   }
   if (name.includes('醤油') || name.includes('soy sauce')) {
@@ -118,14 +119,6 @@ export const getFoodIcon = (foodName: string): string => {
   }
   if (name.includes('塩') || name.includes('salt')) {
     return '🧂';
-  }
-  
-  // 豆腐・大豆製品
-  if (name.includes('豆腐') || name.includes('tofu')) {
-    return '🥛';
-  }
-  if (name.includes('油あげ') || name.includes('油揚げ') || name.includes('abura-age')) {
-    return '🟡';
   }
   
   // その他
