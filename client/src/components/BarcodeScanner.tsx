@@ -51,86 +51,82 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
     console.log("Initializing scanner...");
     
     try {
-      // Check if mediaDevices is supported
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Camera not supported");
-      }
-
+      // Simple and direct camera request for iOS
       console.log("Requesting camera access...");
       
-      // Try different constraints for iOS compatibility
-      let stream: MediaStream;
-      try {
-        // First try with environment camera
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1280 },
-            height: { ideal: 720 }
-          } 
-        });
-      } catch (envError) {
-        console.log("Environment camera failed, trying any camera:", envError);
-        // Fallback to any available camera
-        stream = await navigator.mediaDevices.getUserMedia({ 
-          video: true
-        });
-      }
+      const constraints = {
+        video: {
+          facingMode: 'environment',
+          width: { min: 640, ideal: 1280, max: 1920 },
+          height: { min: 480, ideal: 720, max: 1080 }
+        }
+      };
 
-      console.log("Camera access granted, setting up video...");
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("Camera stream obtained");
 
       if (videoRef.current && stream) {
-        videoRef.current.srcObject = stream;
+        const video = videoRef.current;
         
-        // Wait for video to load
-        await new Promise((resolve, reject) => {
-          if (videoRef.current) {
-            videoRef.current.onloadedmetadata = resolve;
-            videoRef.current.onerror = reject;
-          }
-        });
+        // Direct assignment and immediate play
+        video.srcObject = stream;
+        video.muted = true;
+        video.playsInline = true;
+        video.autoplay = true;
         
-        await videoRef.current.play();
-        setIsScanning(true);
-        
-        console.log("Video playing, starting barcode detection...");
-
-        // Initialize ZXing scanner
-        const codeReader = new BrowserMultiFormatReader();
-        codeReaderRef.current = codeReader;
-        
-        // Start continuous scanning
-        setTimeout(() => {
-          if (videoRef.current && isOpen) {
+        // Simple event handlers
+        video.addEventListener('loadedmetadata', () => {
+          console.log("Video metadata loaded, starting playback");
+          video.play().then(() => {
+            console.log("Video playing successfully");
+            setIsScanning(true);
+            
+            // Initialize scanner immediately
+            const codeReader = new BrowserMultiFormatReader();
+            codeReaderRef.current = codeReader;
+            
+            console.log("Starting continuous barcode scanning");
             codeReader.decodeFromVideoDevice(
               undefined,
-              videoRef.current,
-              (result, error) => {
+              video,
+              (result) => {
                 if (result) {
-                  console.log("Barcode detected:", result.getText());
+                  console.log("Barcode found:", result.getText());
                   const barcode = result.getText();
                   setScannedCode(barcode);
                   fetchProductInfo(barcode);
                   stopScanning();
                 }
-                // Continue scanning if no result
               }
             );
-          }
-        }, 1000); // Give video time to stabilize
+          }).catch(playError => {
+            console.error("Video play failed:", playError);
+            toast({
+              title: "カメラエラー",
+              description: "ビデオの再生に失敗しました。",
+              variant: "destructive",
+            });
+          });
+        });
+        
+        video.addEventListener('error', (error) => {
+          console.error("Video element error:", error);
+          toast({
+            title: "カメラエラー",
+            description: "ビデオの初期化に失敗しました。",
+            variant: "destructive",
+          });
+        });
       }
+      
     } catch (error: any) {
-      console.error("Scanner initialization error:", error);
+      console.error("Camera access error:", error);
       let errorMessage = "カメラにアクセスできませんでした。";
       
       if (error?.name === 'NotAllowedError') {
         errorMessage = "カメラの許可が必要です。ブラウザの設定でカメラアクセスを許可してください。";
       } else if (error?.name === 'NotFoundError') {
         errorMessage = "カメラが見つかりませんでした。";
-      } else if (error?.name === 'NotSupportedError') {
-        errorMessage = "このブラウザではカメラがサポートされていません。";
-      } else if (error?.message === 'Camera not supported') {
-        errorMessage = "このデバイスではカメラ機能がサポートされていません。";
       }
       
       toast({
@@ -215,10 +211,17 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
     }
   };
 
-  const handleRetry = () => {
+  const handleRetry = async () => {
+    console.log("Retrying camera initialization...");
     setScannedCode("");
     setProductInfo(null);
-    initializeScanner();
+    setIsLoading(false);
+    stopScanning();
+    
+    // Wait a moment before retrying
+    setTimeout(() => {
+      initializeScanner();
+    }, 500);
   };
 
   if (!isOpen) return null;
@@ -237,17 +240,28 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
           {!scannedCode && (
             <>
               <div className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                {isScanning ? (
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    autoPlay
-                    muted
-                    playsInline
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Camera className="w-16 h-16 text-gray-400" />
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  muted
+                  playsInline
+                  style={{ display: isScanning ? 'block' : 'none' }}
+                />
+                {!isScanning && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <Camera className="w-16 h-16 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">カメラを起動中...</p>
+                      <Button 
+                        onClick={handleRetry}
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-2"
+                      >
+                        再試行
+                      </Button>
+                    </div>
                   </div>
                 )}
                 
