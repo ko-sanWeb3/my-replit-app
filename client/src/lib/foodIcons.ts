@@ -3,7 +3,7 @@ export const getFoodIcon = (foodName: string): string => {
   const name = foodName.toLowerCase();
   
   // 大豆製品（最優先）
-  if (name.includes('油揚げ') || name.includes('厚揚げ') || name.includes('fried tofu')) {
+  if (name.includes('油揚げ') || name.includes('油あげ') || name.includes('厚揚げ') || name.includes('fried tofu')) {
     return '🟨';
   }
   if (name.includes('豆腐') || name.includes('tofu')) {
@@ -151,7 +151,7 @@ export const getFoodCategory = (foodName: string): string => {
   }
   
   if (name.includes('豆腐') || name.includes('豆乳') || name.includes('油揚げ') ||
-      name.includes('厚揚げ') || name.includes('納豆') || name.includes('味噌')) {
+      name.includes('油あげ') || name.includes('厚揚げ') || name.includes('納豆') || name.includes('味噌')) {
     return 'チルド';
   }
   
