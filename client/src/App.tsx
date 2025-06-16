@@ -17,6 +17,7 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/inventory" component={Inventory} />
       <Route path="/recipes" component={Recipes} />
+      <Route path="/community" component={Community} />
       <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
@@ -27,8 +28,9 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
         <Router />
+        <ChatBot />
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );

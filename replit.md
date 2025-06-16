@@ -36,6 +36,13 @@ This is a React-based food inventory management application with a mobile-first 
 - **Receipts**: Receipt storage and analysis results
 - **Sessions**: Session management table for authentication
 
+## Community & Engagement Features
+- **Community Page**: User discussion forum with posts, tips, recipes, and Q&A
+- **Achievement System**: Gamification with points, levels, and unlockable badges
+- **Feedback System**: User-driven feature requests and improvement suggestions
+- **Interactive ChatBot**: AI assistant for food management guidance and motivation
+- **Social Integration**: LINEグループ participation and app sharing capabilities
+
 ## Authentication System
 - **Current State**: Completely disabled for guest-only access
 - **Future Implementation**: Ready for Replit Auth integration
@@ -117,6 +124,7 @@ This is a React-based food inventory management application with a mobile-first 
 Changelog:
 - June 16, 2025. Initial setup
 - June 16, 2025. Fixed iOS barcode scanning: QR mode → standard barcode detection, improved UI with horizontal scan frame
+- June 16, 2025. Added community engagement features: user forum, achievement system, feedback collection, and interactive AI chatbot for continuous user motivation and app improvement
 
 # User Preferences
 
