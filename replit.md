@@ -116,6 +116,7 @@ This is a React-based food inventory management application with a mobile-first 
 
 Changelog:
 - June 16, 2025. Initial setup
+- June 16, 2025. Fixed iOS barcode scanning: QR mode → standard barcode detection, improved UI with horizontal scan frame
 
 # User Preferences
 

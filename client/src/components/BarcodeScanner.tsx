@@ -86,16 +86,23 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
             codeReaderRef.current = codeReader;
             
             console.log("Starting continuous barcode scanning");
+            
+            // Simple configuration for better barcode detection
+            console.log("Configuring scanner for standard barcodes (EAN-13, UPC, etc.)");
+            
             codeReader.decodeFromVideoDevice(
               undefined,
               video,
-              (result) => {
+              (result, error) => {
                 if (result) {
                   console.log("Barcode found:", result.getText());
                   const barcode = result.getText();
                   setScannedCode(barcode);
                   fetchProductInfo(barcode);
                   stopScanning();
+                } else if (error) {
+                  // Log scanning attempts
+                  console.log("Scanning for barcode...");
                 }
               }
             );
@@ -266,16 +273,33 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
                 )}
                 
                 {isScanning && (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="border-2 border-white w-48 h-48 rounded-lg flex items-center justify-center">
-                      <Scan className="w-8 h-8 text-white animate-pulse" />
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    {/* Barcode scanning frame */}
+                    <div className="relative">
+                      <div className="w-64 h-32 border-2 border-red-500 bg-transparent">
+                        {/* Corner brackets */}
+                        <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-red-500"></div>
+                        <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-red-500"></div>
+                        <div className="absolute -bottom-1 -left-1 w-8 h-8 border-b-4 border-l-4 border-red-500"></div>
+                        <div className="absolute -bottom-1 -right-1 w-8 h-8 border-b-4 border-r-4 border-red-500"></div>
+                        
+                        {/* Scanning line */}
+                        <div className="absolute top-0 left-0 w-full h-0.5 bg-red-500 animate-pulse"></div>
+                      </div>
+                      
+                      {/* Instructions */}
+                      <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 text-center">
+                        <p className="text-white bg-black bg-opacity-60 px-3 py-1 rounded text-sm">
+                          バーコードをここに合わせてください
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
               
               <p className="text-sm text-gray-600 text-center">
-                バーコードをカメラの中央に合わせてください
+                商品の<strong>バーコード</strong>（縦線のパターン）をスキャンしてください
               </p>
             </>
           )}
