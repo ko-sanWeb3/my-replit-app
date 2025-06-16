@@ -107,16 +107,10 @@ export default function Community() {
 
   const submitPost = useMutation({
     mutationFn: async (content: string) => {
-      return await apiRequest("/api/community/posts", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          content,
-          type: "tip",
-          username: "匿名ユーザー"
-        }),
+      return await apiRequest("POST", "/api/community/posts", { 
+        content,
+        type: "tip",
+        username: "匿名ユーザー"
       });
     },
     onSuccess: () => {
@@ -132,13 +126,7 @@ export default function Community() {
 
   const submitFeedback = useMutation({
     mutationFn: async (feedback: { title: string; description: string }) => {
-      return await apiRequest("/api/feedback", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(feedback),
-      });
+      return await apiRequest("POST", "/api/feedback", feedback);
     },
     onSuccess: () => {
       toast({
@@ -293,7 +281,7 @@ export default function Community() {
 
             {/* Community Posts */}
             <div className="space-y-4">
-              {postsData.map((post: any) => (
+              {(postsData as any[]).map((post: any) => (
                 <Card key={post.id}>
                   <CardContent className="pt-4">
                     <div className="flex items-start space-x-3">
@@ -399,7 +387,7 @@ export default function Community() {
 
             {/* Feedback Items */}
             <div className="space-y-4">
-              {feedbackData.map((item: any) => (
+              {(feedbackData as any[]).map((item: any) => (
                 <Card key={item.id}>
                   <CardContent className="pt-4">
                     <div className="flex items-start justify-between mb-2">
