@@ -84,7 +84,12 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
   const stopScanning = () => {
     if (codeReaderRef.current) {
       try {
-        codeReaderRef.current.stopContinuousDecode();
+        // Stop the video stream
+        const video = videoRef.current;
+        if (video && video.srcObject) {
+          const stream = video.srcObject as MediaStream;
+          stream.getTracks().forEach(track => track.stop());
+        }
       } catch (error) {
         console.log("Scanner already stopped");
       }
