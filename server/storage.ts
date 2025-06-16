@@ -199,6 +199,32 @@ export class DatabaseStorage implements IStorage {
       .where(eq(receipts.userId, userId))
       .orderBy(desc(receipts.createdAt));
   }
+
+  // Community operations
+  async getCommunityPosts(): Promise<CommunityPost[]> {
+    return await db.select().from(communityPosts).orderBy(desc(communityPosts.createdAt));
+  }
+
+  async createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost> {
+    const [newPost] = await db
+      .insert(communityPosts)
+      .values(post)
+      .returning();
+    return newPost;
+  }
+
+  // Feedback operations
+  async getFeedbackItems(): Promise<FeedbackItem[]> {
+    return await db.select().from(feedbackItems).orderBy(desc(feedbackItems.createdAt));
+  }
+
+  async createFeedbackItem(feedback: InsertFeedbackItem): Promise<FeedbackItem> {
+    const [newFeedback] = await db
+      .insert(feedbackItems)
+      .values(feedback)
+      .returning();
+    return newFeedback;
+  }
 }
 
 export const storage = new DatabaseStorage();

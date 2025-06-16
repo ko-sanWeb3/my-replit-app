@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircle, Users, Star, Gift, Trophy, Heart, Send, Share2, ExternalLink } from "lucide-react";
+import { MessageCircle, Users, Star, Gift, Trophy, Heart, Send, Share2, ExternalLink, Award, Target, TrendingUp, ThumbsUp, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
 import BottomNavigation from "@/components/BottomNavigation";
 
 interface CommunityPost {
@@ -48,55 +49,34 @@ export default function Community() {
   const [newFeedbackTitle, setNewFeedbackTitle] = useState("");
   const [newFeedbackDescription, setNewFeedbackDescription] = useState("");
   const [userPoints, setUserPoints] = useState(1250);
-  const [userLevel, setUserLevel] = useState(5);
+  const [userLevel, setUserLevel] = useState(12);
 
-  // Mock data for demonstration
-  const communityPosts: CommunityPost[] = [
-    {
-      id: 1,
-      username: "料理上手さん",
-      content: "冷蔵庫の残り野菜で作った炒め物が美味しくできました！人参、キャベツ、豚肉の組み合わせがおすすめです。",
-      type: 'recipe',
-      likes: 15,
-      replies: 3,
-      createdAt: "2時間前",
-      tags: ["レシピ", "野菜活用"]
-    },
-    {
-      id: 2,
-      username: "節約マスター",
-      content: "食材の期限切れを防ぐコツ：購入日をメモして、古いものから使う習慣をつけています。",
-      type: 'tip',
-      likes: 8,
-      replies: 1,
-      createdAt: "5時間前",
-      tags: ["節約", "食材管理"]
-    },
-    {
-      id: 3,
-      username: "初心者さん",
-      content: "野菜室の温度設定について教えてください。どのくらいが適温でしょうか？",
-      type: 'question',
-      likes: 2,
-      replies: 5,
-      createdAt: "1日前",
-      tags: ["質問", "野菜保存"]
-    }
-  ];
+  // Fetch community posts from database
+  const { data: postsData = [], refetch: refetchPosts } = useQuery({
+    queryKey: ["/api/community/posts"],
+  });
 
+  // Fetch feedback items from database
+  const { data: feedbackData = [], refetch: refetchFeedback } = useQuery({
+    queryKey: ["/api/feedback"],
+  });
+
+  // Static achievement data
   const achievements: UserAchievement[] = [
     {
       id: 1,
-      title: "エコ料理人",
-      description: "食材ロスを30日間ゼロにする",
-      icon: "🌱",
+      title: "食材マスター",
+      description: "50種類の食材を登録する",
+      icon: "🥬",
       points: 500,
-      unlocked: true
+      unlocked: true,
+      progress: 50,
+      maxProgress: 50
     },
     {
       id: 2,
-      title: "レシピマスター",
-      description: "20種類のレシピを投稿する",
+      title: "料理上手",
+      description: "20個のレシピを作成する",
       icon: "👨‍🍳",
       points: 300,
       unlocked: false,
@@ -125,38 +105,19 @@ export default function Community() {
     }
   ];
 
-  const feedbackItems: FeedbackItem[] = [
-    {
-      id: 1,
-      title: "音声入力機能",
-      description: "料理中に手が汚れていても音声で食材を追加できる機能",
-      status: 'in_review',
-      votes: 23,
-      createdAt: "3日前"
-    },
-    {
-      id: 2,
-      title: "栄養素の詳細表示",
-      description: "各食材の詳細な栄養成分を表示する機能",
-      status: 'implemented',
-      votes: 18,
-      createdAt: "1週間前"
-    },
-    {
-      id: 3,
-      title: "買い物リストの共有",
-      description: "家族間で買い物リストを共有できる機能",
-      status: 'submitted',
-      votes: 31,
-      createdAt: "2日前"
-    }
-  ];
-
   const submitPost = useMutation({
     mutationFn: async (content: string) => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return { success: true };
+      return await apiRequest("/api/community/posts", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ 
+          content,
+          type: "tip",
+          username: "匿名ユーザー"
+        }),
+      });
     },
     onSuccess: () => {
       toast({
@@ -165,14 +126,19 @@ export default function Community() {
       });
       setNewPostContent("");
       setUserPoints(prev => prev + 10);
+      refetchPosts();
     }
   });
 
   const submitFeedback = useMutation({
     mutationFn: async (feedback: { title: string; description: string }) => {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      return { success: true };
+      return await apiRequest("/api/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(feedback),
+      });
     },
     onSuccess: () => {
       toast({
@@ -182,6 +148,7 @@ export default function Community() {
       setNewFeedbackTitle("");
       setNewFeedbackDescription("");
       setUserPoints(prev => prev + 25);
+      refetchFeedback();
     }
   });
 
@@ -190,7 +157,6 @@ export default function Community() {
       title: "LINEグループに参加",
       description: "LINEアプリが開きます...",
     });
-    // In real implementation, would open LINE group invite link
   };
 
   const handleShareApp = () => {
@@ -227,6 +193,28 @@ export default function Community() {
       case 'rejected': return '見送り';
       default: return '不明';
     }
+  };
+
+  const getPostTypeIcon = (type: string) => {
+    switch (type) {
+      case 'recipe': return '👨‍🍳';
+      case 'tip': return '💡';
+      case 'question': return '❓';
+      case 'achievement': return '🏆';
+      default: return '💬';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return "たった今";
+    if (diffInHours < 24) return `${diffInHours}時間前`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}日前`;
+    return date.toLocaleDateString('ja-JP');
   };
 
   return (
@@ -298,46 +286,34 @@ export default function Community() {
                   className="w-full"
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  投稿する (+10pt)
+                  {submitPost.isPending ? "投稿中..." : "投稿する"}
                 </Button>
               </CardContent>
             </Card>
 
             {/* Community Posts */}
             <div className="space-y-4">
-              {communityPosts.map((post) => (
+              {postsData.map((post: any) => (
                 <Card key={post.id}>
-                  <CardContent className="p-4">
+                  <CardContent className="pt-4">
                     <div className="flex items-start space-x-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <span className="text-sm font-medium">
-                          {post.username.charAt(0)}
-                        </span>
+                      <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-semibold">
+                        {post.username?.[0] || "匿"}
                       </div>
                       <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="font-medium text-sm">{post.username}</span>
-                          <span className="text-xs text-gray-500">{post.createdAt}</span>
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className="font-semibold text-sm">{post.username}</span>
+                          <span className="text-xs">{getPostTypeIcon(post.type)}</span>
+                          <span className="text-xs text-gray-500">{formatDate(post.createdAt)}</span>
                         </div>
                         <p className="text-sm text-gray-700 mb-3">{post.content}</p>
-                        
-                        {post.tags && (
-                          <div className="flex flex-wrap gap-1 mb-3">
-                            {post.tags.map((tag, index) => (
-                              <Badge key={index} variant="secondary" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        <div className="flex items-center space-x-4 text-xs text-gray-500">
                           <button className="flex items-center space-x-1 hover:text-red-500">
-                            <Heart className="w-4 h-4" />
+                            <ThumbsUp className="w-3 h-3" />
                             <span>{post.likes}</span>
                           </button>
                           <button className="flex items-center space-x-1 hover:text-blue-500">
-                            <MessageCircle className="w-4 h-4" />
+                            <MessageSquare className="w-3 h-3" />
                             <span>{post.replies}</span>
                           </button>
                         </div>
@@ -350,63 +326,37 @@ export default function Community() {
           </TabsContent>
 
           <TabsContent value="achievements" className="space-y-4">
-            {/* User Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle>あなたの進捗</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center space-y-2">
-                  <div className="text-3xl font-bold text-primary">{userPoints}</div>
-                  <div className="text-sm text-gray-600">合計ポイント</div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full"
-                      style={{ width: `${((userPoints % 500) / 500) * 100}%` }}
-                    ></div>
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    次のレベルまで {500 - (userPoints % 500)}pt
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Achievements List */}
-            <div className="space-y-4">
+            <div className="grid gap-4">
               {achievements.map((achievement) => (
-                <Card key={achievement.id} className={achievement.unlocked ? 'bg-green-50 border-green-200' : ''}>
-                  <CardContent className="p-4">
+                <Card key={achievement.id} className={achievement.unlocked ? "border-green-200 bg-green-50" : ""}>
+                  <CardContent className="pt-4">
                     <div className="flex items-center space-x-3">
                       <div className="text-2xl">{achievement.icon}</div>
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-1">
-                          <h3 className="font-medium">{achievement.title}</h3>
-                          <Badge variant={achievement.unlocked ? 'default' : 'secondary'}>
+                          <h3 className="font-semibold text-sm">{achievement.title}</h3>
+                          <Badge variant={achievement.unlocked ? "default" : "secondary"}>
                             {achievement.points}pt
                           </Badge>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{achievement.description}</p>
-                        
+                        <p className="text-xs text-gray-600 mb-2">{achievement.description}</p>
                         {!achievement.unlocked && achievement.progress !== undefined && (
-                          <div>
-                            <div className="flex justify-between text-xs text-gray-500 mb-1">
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs">
                               <span>進捗</span>
                               <span>{achievement.progress}/{achievement.maxProgress}</span>
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
-                              <div 
-                                className="bg-primary h-1.5 rounded-full"
-                                style={{ width: `${(achievement.progress! / achievement.maxProgress!) * 100}%` }}
-                              ></div>
-                            </div>
+                            <Progress 
+                              value={(achievement.progress / (achievement.maxProgress || 1)) * 100} 
+                              className="h-2"
+                            />
                           </div>
                         )}
-                        
                         {achievement.unlocked && (
-                          <div className="text-xs text-green-600 font-medium">
-                            ✓ 達成済み
-                          </div>
+                          <Badge variant="default" className="text-xs">
+                            <Award className="w-3 h-3 mr-1" />
+                            達成済み
+                          </Badge>
                         )}
                       </div>
                     </div>
@@ -417,19 +367,19 @@ export default function Community() {
           </TabsContent>
 
           <TabsContent value="feedback" className="space-y-4">
-            {/* Feedback Submission */}
+            {/* Feedback Form */}
             <Card>
               <CardHeader>
-                <CardTitle>新しい機能を提案</CardTitle>
+                <CardTitle>改善提案</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Input
-                  placeholder="機能のタイトル"
+                  placeholder="提案のタイトル"
                   value={newFeedbackTitle}
                   onChange={(e) => setNewFeedbackTitle(e.target.value)}
                 />
                 <Textarea
-                  placeholder="詳しい説明や理由を教えてください..."
+                  placeholder="詳細な説明をお聞かせください..."
                   value={newFeedbackDescription}
                   onChange={(e) => setNewFeedbackDescription(e.target.value)}
                 />
@@ -442,29 +392,29 @@ export default function Community() {
                   className="w-full"
                 >
                   <Send className="w-4 h-4 mr-2" />
-                  提案する (+25pt)
+                  {submitFeedback.isPending ? "送信中..." : "フィードバックを送信"}
                 </Button>
               </CardContent>
             </Card>
 
-            {/* Feedback List */}
+            {/* Feedback Items */}
             <div className="space-y-4">
-              {feedbackItems.map((item) => (
+              {feedbackData.map((item: any) => (
                 <Card key={item.id}>
-                  <CardContent className="p-4">
+                  <CardContent className="pt-4">
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-medium">{item.title}</h3>
+                      <h3 className="font-semibold text-sm">{item.title}</h3>
                       <Badge className={getStatusColor(item.status)}>
                         {getStatusText(item.status)}
                       </Badge>
                     </div>
-                    <p className="text-sm text-gray-600 mb-3">{item.description}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-500">
-                      <div className="flex items-center space-x-2">
-                        <Star className="w-4 h-4" />
-                        <span>{item.votes} 票</span>
+                    <p className="text-xs text-gray-600 mb-3">{item.description}</p>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <span>{formatDate(item.createdAt)}</span>
+                      <div className="flex items-center space-x-1">
+                        <Heart className="w-3 h-3" />
+                        <span>{item.votes}</span>
                       </div>
-                      <span>{item.createdAt}</span>
                     </div>
                   </CardContent>
                 </Card>

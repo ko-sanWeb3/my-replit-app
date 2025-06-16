@@ -440,6 +440,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Community posts endpoints
+  app.get("/api/community/posts", async (req, res) => {
+    try {
+      const posts = await storage.getCommunityPosts();
+      res.json(posts);
+    } catch (error) {
+      console.error("Error fetching community posts:", error);
+      res.status(500).json({ message: "Failed to fetch community posts" });
+    }
+  });
+
+  app.post("/api/community/posts", async (req, res) => {
+    try {
+      const { content, type = "tip", username = "匿名ユーザー" } = req.body;
+      
+      if (!content?.trim()) {
+        return res.status(400).json({ message: "Content is required" });
+      }
+
+      const newPost = await storage.createCommunityPost({
+        userId: "guest",
+        username,
+        content: content.trim(),
+        type,
+        likes: 0,
+        replies: 0,
+        tags: []
+      });
+
+      res.status(201).json(newPost);
+    } catch (error) {
+      console.error("Error creating community post:", error);
+      res.status(500).json({ message: "Failed to create post" });
+    }
+  });
+
+  // Feedback endpoints
+  app.get("/api/feedback", async (req, res) => {
+    try {
+      const feedback = await storage.getFeedbackItems();
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+      res.status(500).json({ message: "Failed to fetch feedback" });
+    }
+  });
+
+  app.post("/api/feedback", async (req, res) => {
+    try {
+      const { title, description } = req.body;
+      
+      if (!title?.trim() || !description?.trim()) {
+        return res.status(400).json({ message: "Title and description are required" });
+      }
+
+      const newFeedback = await storage.createFeedbackItem({
+        userId: "guest",
+        title: title.trim(),
+        description: description.trim(),
+        status: "submitted",
+        votes: 0
+      });
+
+      res.status(201).json(newFeedback);
+    } catch (error) {
+      console.error("Error creating feedback:", error);
+      res.status(500).json({ message: "Failed to create feedback" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
