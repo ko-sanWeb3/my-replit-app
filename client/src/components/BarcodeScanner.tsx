@@ -48,97 +48,66 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
   }, [isOpen]);
 
   const initializeScanner = async () => {
-    console.log("Initializing scanner...");
+    console.log("Initializing stable scanner...");
     
     try {
-      // Simple and direct camera request for iOS
-      console.log("Requesting camera access...");
-      
-      const constraints = {
+      const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { min: 640, ideal: 1280, max: 1920 },
-          height: { min: 480, ideal: 720, max: 1080 }
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         }
-      };
-
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      });
+      
       console.log("Camera stream obtained");
 
       if (videoRef.current && stream) {
         const video = videoRef.current;
-        
-        // Direct assignment and immediate play
         video.srcObject = stream;
         video.muted = true;
         video.playsInline = true;
-        video.autoplay = true;
         
-        // Simple event handlers
-        video.addEventListener('loadedmetadata', () => {
-          console.log("Video metadata loaded, starting playback");
-          video.play().then(() => {
-            console.log("Video playing successfully");
-            setIsScanning(true);
-            
-            // Initialize scanner immediately
-            const codeReader = new BrowserMultiFormatReader();
-            codeReaderRef.current = codeReader;
-            
-            console.log("Starting continuous barcode scanning");
-            
-            // Simple configuration for better barcode detection
-            console.log("Configuring scanner for standard barcodes (EAN-13, UPC, etc.)");
-            
-            codeReader.decodeFromVideoDevice(
-              undefined,
-              video,
-              (result, error) => {
-                if (result) {
-                  console.log("Barcode found:", result.getText());
-                  const barcode = result.getText();
-                  setScannedCode(barcode);
-                  fetchProductInfo(barcode);
-                  stopScanning();
-                } else if (error) {
-                  // Log scanning attempts
-                  console.log("Scanning for barcode...");
-                }
+        await video.play();
+        console.log("Video playing");
+        setIsScanning(true);
+        
+        // Initialize scanner once video is ready
+        const codeReader = new BrowserMultiFormatReader();
+        codeReaderRef.current = codeReader;
+        
+        // Manual scanning approach to avoid flicker
+        const scanManually = async () => {
+          try {
+            if (videoRef.current && isScanning) {
+              const result = await codeReader.decodeOnceFromVideoDevice(undefined, video);
+              if (result) {
+                console.log("Barcode detected:", result.getText());
+                setScannedCode(result.getText());
+                fetchProductInfo(result.getText());
+                return;
               }
-            );
-          }).catch(playError => {
-            console.error("Video play failed:", playError);
-            toast({
-              title: "カメラエラー",
-              description: "ビデオの再生に失敗しました。",
-              variant: "destructive",
-            });
-          });
-        });
+            }
+          } catch (error) {
+            // Continue scanning on error
+          }
+          
+          // Continue scanning if no result
+          if (isScanning && isOpen) {
+            setTimeout(scanManually, 500);
+          }
+        };
         
-        video.addEventListener('error', (error) => {
-          console.error("Video element error:", error);
-          toast({
-            title: "カメラエラー",
-            description: "ビデオの初期化に失敗しました。",
-            variant: "destructive",
-          });
-        });
+        // Start manual scanning
+        setTimeout(scanManually, 1000);
       }
       
     } catch (error: any) {
-      console.error("Camera access error:", error);
-      let errorMessage = "カメラにアクセスできませんでした。";
-      
-      if (error?.name === 'NotAllowedError') {
-        errorMessage = "カメラの許可が必要です。ブラウザの設定でカメラアクセスを許可してください。";
-      } else if (error?.name === 'NotFoundError') {
-        errorMessage = "カメラが見つかりませんでした。";
-      }
-      
+      console.error("Camera error:", error);
       toast({
         title: "カメラエラー",
-        description: errorMessage,
+        description: error?.name === 'NotAllowedError' 
+          ? "カメラの許可が必要です" 
+          : "カメラにアクセスできませんでした",
         variant: "destructive",
       });
       setIsScanning(false);
@@ -148,26 +117,34 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
   const stopScanning = () => {
     console.log("Stopping scanner...");
     
+    // Prevent multiple stop calls
+    if (!isScanning) return;
+    
+    setIsScanning(false);
+    
     if (codeReaderRef.current) {
       try {
-        // Stop the video stream first
-        const video = videoRef.current;
-        if (video && video.srcObject) {
-          const stream = video.srcObject as MediaStream;
-          stream.getTracks().forEach(track => {
-            console.log("Stopping track:", track.kind);
-            track.stop();
-          });
-          video.srcObject = null;
-        }
-        
         // Clear the scanner reference
         codeReaderRef.current = null;
       } catch (error) {
-        console.log("Scanner already stopped:", error);
+        console.log("Scanner reset error:", error);
       }
     }
-    setIsScanning(false);
+    
+    // Stop video stream
+    const video = videoRef.current;
+    if (video && video.srcObject) {
+      try {
+        const stream = video.srcObject as MediaStream;
+        stream.getTracks().forEach(track => {
+          console.log("Stopping track:", track.kind);
+          track.stop();
+        });
+        video.srcObject = null;
+      } catch (error) {
+        console.log("Video stream stop error:", error);
+      }
+    }
   };
 
   const fetchProductInfo = async (barcode: string) => {
