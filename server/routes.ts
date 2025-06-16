@@ -23,10 +23,10 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
   text: string;
   extractedItems: Array<{ name: string; category: string; quantity?: number; unit?: string }>;
 }> {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || "AIzaSyAk_G-Nby8A8hHW3RPBCKhpXqyFo0ShAVU";
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
   
   if (!GEMINI_API_KEY) {
-    throw new Error("Gemini API key not found in environment variables");
+    throw new Error("Gemini API key not found in environment variables. Please add GEMINI_API_KEY to Secrets.");
   }
 
   try {

@@ -3,12 +3,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Camera, ExternalLink, Plus } from "lucide-react";
+import { Bell, Camera, ExternalLink, Plus, Scan } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import NutritionRings from "@/components/NutritionRings";
 import ReceiptUploadModal from "@/components/ReceiptUploadModal";
+import BarcodeScanner from "@/components/BarcodeScanner";
 import FoodItemCard from "@/components/FoodItemCard";
 import BottomNavigation from "@/components/BottomNavigation";
 
