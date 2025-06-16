@@ -73,6 +73,23 @@ export const getFoodIcon = (foodName: string): string => {
     return '🐟';
   }
   
+  // 大豆製品
+  if (name.includes('豆腐') || name.includes('tofu')) {
+    return '⬜';
+  }
+  if (name.includes('豆乳') || name.includes('soy milk')) {
+    return '🥛';
+  }
+  if (name.includes('油揚げ') || name.includes('厚揚げ') || name.includes('fried tofu')) {
+    return '🟨';
+  }
+  if (name.includes('納豆') || name.includes('natto')) {
+    return '🫘';
+  }
+  if (name.includes('味噌') || name.includes('miso')) {
+    return '🟤';
+  }
+  
   // 卵・乳製品
   if (name.includes('卵') || name.includes('たまご') || name.includes('egg')) {
     return '🥚';
@@ -140,8 +157,13 @@ export const getFoodCategory = (foodName: string): string => {
     return '野菜室';
   }
   
+  if (name.includes('豆腐') || name.includes('豆乳') || name.includes('油揚げ') ||
+      name.includes('厚揚げ') || name.includes('納豆') || name.includes('味噌')) {
+    return 'チルド';
+  }
+  
   if (name.includes('牛乳') || name.includes('ミルク') || name.includes('チーズ') ||
-      name.includes('卵') || name.includes('たまご') || name.includes('豆腐')) {
+      name.includes('卵') || name.includes('たまご')) {
     return 'チルド';
   }
   
