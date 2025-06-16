@@ -48,36 +48,76 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
   }, [isOpen]);
 
   const initializeScanner = async () => {
+    console.log("Initializing scanner...");
+    
     try {
-      // Request camera permission first
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment' // Use back camera on mobile
-        } 
-      });
+      // Check if mediaDevices is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera not supported");
+      }
 
-      if (videoRef.current) {
+      console.log("Requesting camera access...");
+      
+      // Try different constraints for iOS compatibility
+      let stream: MediaStream;
+      try {
+        // First try with environment camera
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          } 
+        });
+      } catch (envError) {
+        console.log("Environment camera failed, trying any camera:", envError);
+        // Fallback to any available camera
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true
+        });
+      }
+
+      console.log("Camera access granted, setting up video...");
+
+      if (videoRef.current && stream) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play();
+        
+        // Wait for video to load
+        await new Promise((resolve, reject) => {
+          if (videoRef.current) {
+            videoRef.current.onloadedmetadata = resolve;
+            videoRef.current.onerror = reject;
+          }
+        });
+        
+        await videoRef.current.play();
         setIsScanning(true);
+        
+        console.log("Video playing, starting barcode detection...");
 
+        // Initialize ZXing scanner
         const codeReader = new BrowserMultiFormatReader();
         codeReaderRef.current = codeReader;
         
         // Start continuous scanning
-        codeReader.decodeFromVideoDevice(
-          undefined,
-          videoRef.current,
-          (result, error) => {
-            if (result) {
-              const barcode = result.getText();
-              setScannedCode(barcode);
-              fetchProductInfo(barcode);
-              stopScanning();
-            }
-            // Continue scanning if no result
+        setTimeout(() => {
+          if (videoRef.current && isOpen) {
+            codeReader.decodeFromVideoDevice(
+              undefined,
+              videoRef.current,
+              (result, error) => {
+                if (result) {
+                  console.log("Barcode detected:", result.getText());
+                  const barcode = result.getText();
+                  setScannedCode(barcode);
+                  fetchProductInfo(barcode);
+                  stopScanning();
+                }
+                // Continue scanning if no result
+              }
+            );
           }
-        );
+        }, 1000); // Give video time to stabilize
       }
     } catch (error: any) {
       console.error("Scanner initialization error:", error);
@@ -87,6 +127,10 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
         errorMessage = "カメラの許可が必要です。ブラウザの設定でカメラアクセスを許可してください。";
       } else if (error?.name === 'NotFoundError') {
         errorMessage = "カメラが見つかりませんでした。";
+      } else if (error?.name === 'NotSupportedError') {
+        errorMessage = "このブラウザではカメラがサポートされていません。";
+      } else if (error?.message === 'Camera not supported') {
+        errorMessage = "このデバイスではカメラ機能がサポートされていません。";
       }
       
       toast({
@@ -99,20 +143,25 @@ export default function BarcodeScanner({ isOpen, onClose, onScanSuccess }: Barco
   };
 
   const stopScanning = () => {
+    console.log("Stopping scanner...");
+    
     if (codeReaderRef.current) {
       try {
-        // Reset the scanner
-        codeReaderRef.current.reset();
-        
-        // Stop the video stream
+        // Stop the video stream first
         const video = videoRef.current;
         if (video && video.srcObject) {
           const stream = video.srcObject as MediaStream;
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach(track => {
+            console.log("Stopping track:", track.kind);
+            track.stop();
+          });
           video.srcObject = null;
         }
+        
+        // Clear the scanner reference
+        codeReaderRef.current = null;
       } catch (error) {
-        console.log("Scanner already stopped");
+        console.log("Scanner already stopped:", error);
       }
     }
     setIsScanning(false);
