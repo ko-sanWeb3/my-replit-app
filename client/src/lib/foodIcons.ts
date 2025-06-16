@@ -2,6 +2,23 @@
 export const getFoodIcon = (foodName: string): string => {
   const name = foodName.toLowerCase();
   
+  // 大豆製品（最優先）
+  if (name.includes('油揚げ') || name.includes('厚揚げ') || name.includes('fried tofu')) {
+    return '🟨';
+  }
+  if (name.includes('豆腐') || name.includes('tofu')) {
+    return '⬜';
+  }
+  if (name.includes('豆乳') || name.includes('soy milk')) {
+    return '🥛';
+  }
+  if (name.includes('納豆') || name.includes('natto')) {
+    return '🫘';
+  }
+  if (name.includes('味噌') || name.includes('miso')) {
+    return '🟤';
+  }
+  
   // 肉類
   if (name.includes('牛') || name.includes('ビーフ') || name.includes('beef')) {
     return '🥩';
@@ -71,23 +88,6 @@ export const getFoodIcon = (foodName: string): string => {
   }
   if (name.includes('まぐろ') || name.includes('tuna')) {
     return '🐟';
-  }
-  
-  // 大豆製品
-  if (name.includes('豆腐') || name.includes('tofu')) {
-    return '⬜';
-  }
-  if (name.includes('豆乳') || name.includes('soy milk')) {
-    return '🥛';
-  }
-  if (name.includes('油揚げ') || name.includes('厚揚げ') || name.includes('fried tofu')) {
-    return '🟨';
-  }
-  if (name.includes('納豆') || name.includes('natto')) {
-    return '🫘';
-  }
-  if (name.includes('味噌') || name.includes('miso')) {
-    return '🟤';
   }
   
   // 卵・乳製品
