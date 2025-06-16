@@ -4,6 +4,8 @@ import {
   foodItems,
   shoppingItems,
   receipts,
+  communityPosts,
+  feedbackItems,
   type User,
   type UpsertUser,
   type Category,
@@ -14,6 +16,10 @@ import {
   type InsertShoppingItem,
   type Receipt,
   type InsertReceipt,
+  type CommunityPost,
+  type InsertCommunityPost,
+  type FeedbackItem,
+  type InsertFeedbackItem,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, asc } from "drizzle-orm";
@@ -44,6 +50,14 @@ export interface IStorage {
   // Receipt operations
   createReceipt(receipt: InsertReceipt): Promise<Receipt>;
   getUserReceipts(userId: string): Promise<Receipt[]>;
+  
+  // Community operations
+  getCommunityPosts(): Promise<CommunityPost[]>;
+  createCommunityPost(post: InsertCommunityPost): Promise<CommunityPost>;
+  
+  // Feedback operations
+  getFeedbackItems(): Promise<FeedbackItem[]>;
+  createFeedbackItem(feedback: InsertFeedbackItem): Promise<FeedbackItem>;
 }
 
 export class DatabaseStorage implements IStorage {

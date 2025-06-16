@@ -86,6 +86,28 @@ export const receipts = pgTable("receipts", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const communityPosts = pgTable("community_posts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().default("guest"),
+  username: varchar("username").notNull().default("匿名ユーザー"),
+  content: text("content").notNull(),
+  type: varchar("type").notNull().default("tip"), // 'recipe' | 'tip' | 'question' | 'achievement'
+  likes: integer("likes").notNull().default(0),
+  replies: integer("replies").notNull().default(0),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const feedbackItems = pgTable("feedback_items", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().default("guest"),
+  title: varchar("title").notNull(),
+  description: text("description").notNull(),
+  status: varchar("status").notNull().default("submitted"), // 'submitted' | 'in_review' | 'implemented' | 'rejected'
+  votes: integer("votes").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   categories: many(categories),
@@ -127,6 +149,20 @@ export const receiptsRelations = relations(receipts, ({ one }) => ({
   }),
 }));
 
+export const communityPostsRelations = relations(communityPosts, ({ one }) => ({
+  user: one(users, {
+    fields: [communityPosts.userId],
+    references: [users.id],
+  }),
+}));
+
+export const feedbackItemsRelations = relations(feedbackItems, ({ one }) => ({
+  user: one(users, {
+    fields: [feedbackItems.userId],
+    references: [users.id],
+  }),
+}));
+
 // Insert schemas
 export const insertCategorySchema = createInsertSchema(categories).omit({
   id: true,
@@ -149,6 +185,16 @@ export const insertReceiptSchema = createInsertSchema(receipts).omit({
   createdAt: true,
 });
 
+export const insertCommunityPostSchema = createInsertSchema(communityPosts).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFeedbackItemSchema = createInsertSchema(feedbackItems).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -160,3 +206,7 @@ export type ShoppingItem = typeof shoppingItems.$inferSelect;
 export type InsertShoppingItem = z.infer<typeof insertShoppingItemSchema>;
 export type Receipt = typeof receipts.$inferSelect;
 export type InsertReceipt = z.infer<typeof insertReceiptSchema>;
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = z.infer<typeof insertCommunityPostSchema>;
+export type FeedbackItem = typeof feedbackItems.$inferSelect;
+export type InsertFeedbackItem = z.infer<typeof insertFeedbackItemSchema>;
