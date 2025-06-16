@@ -272,6 +272,7 @@ export default function ExtractedItemsModal({
                         />
                         <div className="flex-1">
                           <div className="flex items-center space-x-2 mb-2">
+                            <span className="text-xl">{getFoodIcon(editingItems[index] || item.name)}</span>
                             {isGenericItem(item.name) ? (
                               <div className="flex-1">
                                 <Select 
@@ -284,7 +285,10 @@ export default function ExtractedItemsModal({
                                   <SelectContent>
                                     {vegetableOptions.map((vegetable) => (
                                       <SelectItem key={vegetable} value={vegetable}>
-                                        {vegetable}
+                                        <span className="flex items-center space-x-2">
+                                          <span>{getFoodIcon(vegetable)}</span>
+                                          <span>{vegetable}</span>
+                                        </span>
                                       </SelectItem>
                                     ))}
                                   </SelectContent>

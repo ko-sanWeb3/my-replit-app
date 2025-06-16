@@ -12,6 +12,8 @@ import ReceiptUploadModal from "@/components/ReceiptUploadModal";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import FoodItemCard from "@/components/FoodItemCard";
 import BottomNavigation from "@/components/BottomNavigation";
+import { getFoodIcon } from "@/lib/foodIcons";
+import type { Category, FoodItem, ShoppingItem } from "@shared/schema";
 
 export default function Home() {
   const { toast } = useToast();
@@ -38,22 +40,22 @@ export default function Home() {
   });
 
   // Fetch categories
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [] } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
 
   // Fetch food items
-  const { data: allFoodItems = [] } = useQuery({
+  const { data: allFoodItems = [] } = useQuery<FoodItem[]>({
     queryKey: ["/api/food-items"],
   });
 
   // Fetch shopping items
-  const { data: shoppingItems = [] } = useQuery({
+  const { data: shoppingItems = [] } = useQuery<ShoppingItem[]>({
     queryKey: ["/api/shopping-items"],
   });
 
   // Fetch nutrition summary
-  const { data: nutritionSummary } = useQuery({
+  const { data: nutritionSummary = { totals: { protein: 0, carbs: 0, fats: 0 }, percentages: { protein: 0, carbs: 0, fats: 0 } } } = useQuery<{ totals: { protein: number; carbs: number; fats: number }; percentages: { protein: number; carbs: number; fats: number } }>({
     queryKey: ["/api/nutrition/summary"],
   });
 
@@ -188,7 +190,7 @@ export default function Home() {
           <span className="text-sm text-gray-500">{currentDate}</span>
         </div>
         
-        <NutritionRings nutritionData={nutritionSummary?.percentages} />
+        <NutritionRings nutritionData={nutritionSummary.percentages} />
 
         {/* Expiry Alert */}
         {expiringItems.length > 0 && (
