@@ -7,7 +7,9 @@ import Home from "@/pages/Home";
 import Inventory from "@/pages/Inventory";
 import Recipes from "@/pages/Recipes";
 import Settings from "@/pages/Settings";
+import Community from "@/pages/Community";
 import NotFound from "@/pages/not-found";
+import ChatBot from "@/components/ChatBot";
 
 function Router() {
   return (

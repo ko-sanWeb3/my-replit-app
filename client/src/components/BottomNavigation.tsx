@@ -1,8 +1,8 @@
-import { Home, Package, ChefHat, Settings } from "lucide-react";
+import { Home, Package, ChefHat, Settings, Users } from "lucide-react";
 import { useLocation } from "wouter";
 
 interface BottomNavigationProps {
-  currentPage: "home" | "inventory" | "recipes" | "settings";
+  currentPage: "home" | "inventory" | "recipes" | "settings" | "community";
 }
 
 export default function BottomNavigation({ currentPage }: BottomNavigationProps) {
@@ -10,8 +10,9 @@ export default function BottomNavigation({ currentPage }: BottomNavigationProps)
 
   const navItems = [
     { id: "home", label: "ホーム", icon: Home, path: "/" },
-    { id: "inventory", label: "在庫一覧", icon: Package, path: "/inventory" },
+    { id: "inventory", label: "在庫", icon: Package, path: "/inventory" },
     { id: "recipes", label: "レシピ", icon: ChefHat, path: "/recipes" },
+    { id: "community", label: "コミュニティ", icon: Users, path: "/community" },
     { id: "settings", label: "設定", icon: Settings, path: "/settings" },
   ];
 
