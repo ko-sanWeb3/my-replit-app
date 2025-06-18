@@ -3,13 +3,13 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Bell, Camera, ExternalLink, Plus, Scan } from "lucide-react";
+import { Bell, Camera, ExternalLink, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import NutritionRings from "@/components/NutritionRings";
 import ReceiptUploadModal from "@/components/ReceiptUploadModal";
-import BarcodeScanner from "@/components/BarcodeScanner";
+
 import FoodItemCard from "@/components/FoodItemCard";
 import BottomNavigation from "@/components/BottomNavigation";
 import { getFoodIcon } from "@/lib/foodIcons";
@@ -19,7 +19,6 @@ export default function Home() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
-  const [isBarcodeModalOpen, setIsBarcodeModalOpen] = useState(false);
 
   // Initialize categories mutation
   const initCategoriesMutation = useMutation({
@@ -75,73 +74,7 @@ export default function Home() {
     return expiry <= threeDaysFromNow && expiry >= today;
   });
 
-  // Add food item from barcode scan
-  const addFoodItemMutation = useMutation({
-    mutationFn: async (itemData: {
-      name: string;
-      categoryId: number;
-      expiryDate?: string;
-      quantity?: number;
-      unit?: string;
-      imageUrl?: string;
-    }) => {
-      return await apiRequest('/api/food-items', 'POST', itemData);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/nutrition/summary"] });
-      toast({
-        title: "成功",
-        description: "食材を追加しました",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "エラー",
-        description: "食材の追加に失敗しました",
-        variant: "destructive",
-      });
-    },
-  });
 
-  const handleBarcodeSuccess = (productInfo: {
-    barcode: string;
-    name: string;
-    brand?: string;
-    category?: string;
-    imageUrl?: string;
-  }) => {
-    // デフォルトのカテゴリIDを設定（冷蔵庫）
-    const defaultCategoryId = categories.find((cat: any) => cat.name === "冷蔵")?.id || 1;
-    
-    // 商品カテゴリに基づいてカテゴリを決定
-    let categoryId = defaultCategoryId;
-    if (productInfo.category) {
-      const categoryName = productInfo.category.toLowerCase();
-      if (categoryName.includes('frozen') || categoryName.includes('ice')) {
-        categoryId = categories.find((cat: any) => cat.name === "冷凍庫")?.id || defaultCategoryId;
-      } else if (categoryName.includes('vegetable') || categoryName.includes('fruit')) {
-        categoryId = categories.find((cat: any) => cat.name === "野菜室")?.id || defaultCategoryId;
-      } else if (categoryName.includes('dairy') || categoryName.includes('meat')) {
-        categoryId = categories.find((cat: any) => cat.name === "チルド")?.id || defaultCategoryId;
-      }
-    }
-
-    // 賞味期限を設定（デフォルトで30日後）
-    const defaultExpiryDate = new Date();
-    defaultExpiryDate.setDate(defaultExpiryDate.getDate() + 30);
-
-    const itemData = {
-      name: productInfo.brand ? `${productInfo.brand} ${productInfo.name}` : productInfo.name,
-      categoryId,
-      expiryDate: defaultExpiryDate.toISOString().split('T')[0],
-      quantity: 1,
-      unit: "個",
-      imageUrl: productInfo.imageUrl,
-    };
-
-    addFoodItemMutation.mutate(itemData);
-  };
 
   // Get items by category for display
   const getItemsByCategory = (categoryId: number) => {
@@ -221,14 +154,7 @@ export default function Home() {
           <span className="font-medium">レシートをスキャン</span>
         </Button>
         
-        <Button 
-          onClick={() => setIsBarcodeModalOpen(true)}
-          variant="outline"
-          className="w-full border-secondary text-secondary hover:bg-secondary/5 rounded-xl py-4 flex items-center justify-center space-x-3"
-        >
-          <Scan className="w-5 h-5" />
-          <span className="font-medium">バーコードをスキャン</span>
-        </Button>
+
       </section>
 
       {/* Fridge Sections */}
@@ -366,12 +292,7 @@ export default function Home() {
         onClose={() => setIsReceiptModalOpen(false)}
       />
 
-      {/* Barcode Scanner Modal */}
-      <BarcodeScanner 
-        isOpen={isBarcodeModalOpen}
-        onClose={() => setIsBarcodeModalOpen(false)}
-        onScanSuccess={handleBarcodeSuccess}
-      />
+
     </div>
   );
 }
