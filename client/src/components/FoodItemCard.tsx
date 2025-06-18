@@ -1,6 +1,11 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { getFoodIcon } from "@/lib/foodIcons";
+import { Trash2, Check } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface FoodItemCardProps {
   item: {
@@ -12,9 +17,34 @@ interface FoodItemCardProps {
     imageUrl?: string;
   };
   showFullInfo?: boolean;
+  showDeleteButton?: boolean;
 }
 
-export default function FoodItemCard({ item, showFullInfo = false }: FoodItemCardProps) {
+export default function FoodItemCard({ item, showFullInfo = false, showDeleteButton = true }: FoodItemCardProps) {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const deleteFoodItem = useMutation({
+    mutationFn: async (itemId: number) => {
+      return await apiRequest("DELETE", `/api/food-items/${itemId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "食材を削除しました",
+        description: `${item.name}を在庫から削除しました`,
+      });
+      // Invalidate food items queries to refresh the list
+      queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+    },
+    onError: () => {
+      toast({
+        title: "削除に失敗しました",
+        description: "もう一度お試しください",
+        variant: "destructive",
+      });
+    }
+  });
   const getExpiryStatus = (expiryDate?: string) => {
     if (!expiryDate) return { text: "期限なし", color: "text-gray-500" };
     
@@ -70,6 +100,30 @@ export default function FoodItemCard({ item, showFullInfo = false }: FoodItemCar
                 )}
               </div>
             </div>
+            {showDeleteButton && (
+              <div className="flex flex-col space-y-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-green-600 border-green-600 hover:bg-green-50"
+                  onClick={() => deleteFoodItem.mutate(item.id)}
+                  disabled={deleteFoodItem.isPending}
+                >
+                  <Check className="w-4 h-4 mr-1" />
+                  使い切った
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="text-red-600 border-red-600 hover:bg-red-50"
+                  onClick={() => deleteFoodItem.mutate(item.id)}
+                  disabled={deleteFoodItem.isPending}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  削除
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -77,18 +131,31 @@ export default function FoodItemCard({ item, showFullInfo = false }: FoodItemCar
   }
 
   return (
-    <div className="bg-gray-50 rounded-lg p-3 flex items-center space-x-3">
-      <img 
-        src={foodImage}
-        alt={item.name}
-        className="w-12 h-12 rounded-lg object-cover"
-      />
-      <div>
-        <p className="text-sm font-medium text-gray-800">{item.name}</p>
-        <p className={`text-xs ${expiryStatus.color}`}>
-          {expiryStatus.text}
-        </p>
+    <div className="bg-gray-50 rounded-lg p-3 flex items-center justify-between">
+      <div className="flex items-center space-x-3">
+        <img 
+          src={foodImage}
+          alt={item.name}
+          className="w-12 h-12 rounded-lg object-cover"
+        />
+        <div>
+          <p className="text-sm font-medium text-gray-800">{item.name}</p>
+          <p className={`text-xs ${expiryStatus.color}`}>
+            {expiryStatus.text}
+          </p>
+        </div>
       </div>
+      {showDeleteButton && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="text-green-600 hover:bg-green-50 hover:text-green-700"
+          onClick={() => deleteFoodItem.mutate(item.id)}
+          disabled={deleteFoodItem.isPending}
+        >
+          <Check className="w-4 h-4" />
+        </Button>
+      )}
     </div>
   );
 }
