@@ -1,26 +1,35 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { disableAllAuthentication } from "./no-auth";
+import { killAuthentication } from "./auth-killer";
 
 const app = express();
 
-// 認証システムを完全に無効化 - プロダクション環境でも強制的に無効化
-delete process.env.REPLIT_DOMAINS;
-delete process.env.REPL_ID;
-delete process.env.SESSION_SECRET;
-delete process.env.ISSUER_URL;
-delete process.env.REPLIT_AUTH_ENABLED;
+// NUCLEAR OPTION: Complete authentication elimination
+console.log('=== DISABLING ALL AUTHENTICATION ===');
 
-// 強制的に認証を無効化
+// Kill ALL possible authentication environment variables
+Object.keys(process.env).forEach(key => {
+  if (key.includes('AUTH') || key.includes('REPL') || key.includes('OAUTH') || 
+      key.includes('SESSION') || key.includes('TOKEN')) {
+    delete process.env[key];
+  }
+});
+
+// Force guest mode environment
 process.env.DISABLE_REPLIT_AUTH = 'true';
-process.env.REPLIT_AUTH_ENABLED = 'false';
-process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+process.env.NO_AUTH = 'true';
+process.env.GUEST_ONLY = 'true';
 
-console.log('Authentication completely disabled for guest-only access');
+// Apply nuclear authentication bypass BEFORE any other middleware
+killAuthentication(app);
 
-// Apply comprehensive authentication bypass
-disableAllAuthentication(app);
+// Override the app.listen method to ensure we're serving without auth
+const originalListen = app.listen;
+app.listen = function(...args: any[]) {
+  console.log('Starting server in GUEST-ONLY mode - NO AUTHENTICATION');
+  return originalListen.apply(this, args);
+};
 
 // Debug middleware to capture raw request data
 app.use('/api/food-items', (req: any, res, next) => {
