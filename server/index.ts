@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { disableAllAuthentication } from "./no-auth";
 
 const app = express();
 
@@ -18,24 +19,8 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'development';
 
 console.log('Authentication completely disabled for guest-only access');
 
-// 強制的に全ての認証をバイパス
-app.use('*', (req: any, res, next) => {
-  // 認証関連のヘッダーを削除
-  delete req.headers.authorization;
-  delete req.headers['x-replit-user-id'];
-  delete req.headers['x-replit-user-name'];
-  
-  // 認証チェックを強制的にスキップ
-  req.isAuthenticated = () => false;
-  req.user = null;
-  
-  // Replit認証リダイレクトを防ぐ
-  if (req.path === '/api/login' || req.path === '/api/callback' || req.path === '/api/auth/user') {
-    return res.redirect('/');
-  }
-  
-  next();
-});
+// Apply comprehensive authentication bypass
+disableAllAuthentication(app);
 
 // Debug middleware to capture raw request data
 app.use('/api/food-items', (req: any, res, next) => {
