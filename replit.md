@@ -125,6 +125,7 @@ Changelog:
 - June 16, 2025. Initial setup
 - June 16, 2025. Fixed iOS barcode scanning: QR mode → standard barcode detection, improved UI with horizontal scan frame
 - June 16, 2025. Added community engagement features: user forum, achievement system, feedback collection, and interactive AI chatbot for continuous user motivation and app improvement
+- June 18, 2025. Removed barcode scanner functionality completely per user request - removed BarcodeScanner component, uninstalled @zxing dependencies, and cleaned up all related UI elements and code
 
 # User Preferences
 
