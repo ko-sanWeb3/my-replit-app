@@ -102,9 +102,50 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 認証回避のための直接アクセスルート
+  app.get('/direct', (req, res) => {
+    res.send(`
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>食材管理アプリ - 直接アクセス</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .container { background: white; border-radius: 16px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
+    .logo { font-size: 48px; margin-bottom: 16px; }
+    h1 { color: #333; margin-bottom: 16px; font-size: 24px; }
+    p { color: #666; line-height: 1.6; margin-bottom: 32px; }
+    .button { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 32px; border: none; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; text-decoration: none; display: inline-block; transition: transform 0.2s; }
+    .button:hover { transform: translateY(-2px); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">🥗</div>
+    <h1>食材管理アプリ</h1>
+    <p>Replitの認証をバイパスして直接アクセスできます。このURLをシェアしてご利用ください。</p>
+    <button class="button" onclick="loadApp()">アプリを開く</button>
+    <div id="app"></div>
+  </div>
+  <script>
+    function loadApp() {
+      // Viteの開発サーバーから直接読み込み
+      fetch('/api/auth/user').then(() => {
+        document.getElementById('app').innerHTML = '<iframe src="/" width="100%" height="600px" frameborder="0"></iframe>';
+      }).catch(() => {
+        window.location.href = '/';
+      });
+    }
+  </script>
+</body>
+</html>
+    `);
+  });
+
   // 認証エンドポイントを全てゲストレスポンスに変更
   app.get('/api/auth/user', (req, res) => {
-    // ゲストユーザー情報を返す
     res.json({
       id: "guest_user",
       email: "guest@example.com",
@@ -116,11 +157,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
-  // その他の認証ルートはホームにリダイレクト
-  app.all('/api/login*', (req, res) => res.redirect('/'));
-  app.all('/api/logout*', (req, res) => res.redirect('/'));
-  app.all('/api/callback*', (req, res) => res.redirect('/'));
-  app.all('/auth*', (req, res) => res.redirect('/'));
+  // その他の認証ルートはdirectページにリダイレクト
+  app.all('/api/login*', (req, res) => res.redirect('/direct'));
+  app.all('/api/logout*', (req, res) => res.redirect('/direct'));
+  app.all('/api/callback*', (req, res) => res.redirect('/direct'));
+  app.all('/auth*', (req, res) => res.redirect('/direct'));
 
   // Guest user ID for demo purposes
   const GUEST_USER_ID = "guest_user";
