@@ -102,31 +102,25 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // 完全認証無効化 - 全ての認証エンドポイントをブロック
-  app.all('/api/login*', (req, res) => {
-    console.log('Auth login blocked - redirecting to home');
-    res.redirect('/');
+  // 認証エンドポイントを全てゲストレスポンスに変更
+  app.get('/api/auth/user', (req, res) => {
+    // ゲストユーザー情報を返す
+    res.json({
+      id: "guest_user",
+      email: "guest@example.com",
+      firstName: "Guest",
+      lastName: "User",
+      profileImageUrl: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    });
   });
   
-  app.all('/api/logout*', (req, res) => {
-    console.log('Auth logout blocked - redirecting to home');
-    res.redirect('/');
-  });
-  
-  app.all('/api/callback*', (req, res) => {
-    console.log('Auth callback blocked - redirecting to home');
-    res.redirect('/');
-  });
-  
-  app.all('/api/auth*', (req, res) => {
-    console.log('Auth API blocked - returning guest response');
-    res.json({ guest: true, authenticated: false, message: "Guest mode only" });
-  });
-  
-  app.all('/auth*', (req, res) => {
-    console.log('General auth blocked - redirecting to home');
-    res.redirect('/');
-  });
+  // その他の認証ルートはホームにリダイレクト
+  app.all('/api/login*', (req, res) => res.redirect('/'));
+  app.all('/api/logout*', (req, res) => res.redirect('/'));
+  app.all('/api/callback*', (req, res) => res.redirect('/'));
+  app.all('/auth*', (req, res) => res.redirect('/'));
 
   // Guest user ID for demo purposes
   const GUEST_USER_ID = "guest_user";

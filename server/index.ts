@@ -1,59 +1,20 @@
-import { createServer } from "http";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { createAuthBypass, clearAuthHeaders } from "./bypass-auth";
 
 const app = express();
 
-// Complete authentication bypass at HTTP level
-console.log('Starting server with NO AUTHENTICATION');
+console.log('=== STARTING AUTHENTICATION-FREE SERVER ===');
 
-// Clear all auth environment variables
-Object.keys(process.env).forEach(key => {
-  if (key.includes('AUTH') || key.includes('REPL') || key.includes('OAUTH') || 
-      key.includes('SESSION') || key.includes('TOKEN')) {
-    delete process.env[key];
-  }
-});
-
-// Force guest mode
+// Force environment to guest mode
 process.env.DISABLE_REPLIT_AUTH = 'true';
 process.env.NO_AUTH = 'true';
+process.env.GUEST_ONLY = 'true';
 
-// Universal authentication blocker - runs first
-app.use((req: any, res: any, next: any) => {
-  // Block all auth requests at the entry point
-  const url = req.url || req.originalUrl || '';
-  
-  if (url.includes('auth') || url.includes('login') || url.includes('oauth') || url.includes('callback')) {
-    console.log(`BLOCKED: ${req.method} ${url}`);
-    
-    // Force redirect to home with immediate HTML response
-    res.writeHead(302, {
-      'Location': '/',
-      'Cache-Control': 'no-cache'
-    });
-    return res.end();
-  }
-  
-  // Remove all auth data
-  delete req.user;
-  delete req.session;
-  req.isAuthenticated = () => false;
-  
-  // Clear auth headers
-  if (req.headers) {
-    delete req.headers.authorization;
-    delete req.headers.cookie;
-    Object.keys(req.headers).forEach(key => {
-      if (key.toLowerCase().includes('auth') || key.toLowerCase().includes('replit')) {
-        delete req.headers[key];
-      }
-    });
-  }
-  
-  next();
-});
+// Apply authentication bypass layers
+app.use(clearAuthHeaders());
+app.use(createAuthBypass());
 
 // Force production environment to guest mode
 if (process.env.NODE_ENV === 'production') {
