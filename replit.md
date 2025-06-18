@@ -44,9 +44,10 @@ This is a React-based food inventory management application with a mobile-first 
 - **Social Integration**: LINEグループ participation and app sharing capabilities
 
 ## Authentication System
-- **Current State**: Completely disabled for guest-only access
-- **Future Implementation**: Ready for Replit Auth integration
-- **Security**: All authentication middleware bypassed in development mode
+- **Current State**: Completely removed - pure guest-only access
+- **Implementation**: All authentication dependencies uninstalled and code removed
+- **Access Model**: Single guest user for all operations, no login required
+- **Security**: No authentication middleware, open access for sharing
 
 ## AI Integration
 - **Service**: Google Gemini 1.5 Flash model
@@ -126,6 +127,7 @@ Changelog:
 - June 16, 2025. Fixed iOS barcode scanning: QR mode → standard barcode detection, improved UI with horizontal scan frame
 - June 16, 2025. Added community engagement features: user forum, achievement system, feedback collection, and interactive AI chatbot for continuous user motivation and app improvement
 - June 18, 2025. Removed barcode scanner functionality completely per user request - removed BarcodeScanner component, uninstalled @zxing dependencies, and cleaned up all related UI elements and code
+- June 18, 2025. Completely removed authentication system for guest-only access - uninstalled all auth dependencies (passport, openid-client, express-session), removed authentication redirects from client components, and ensured app works without login for sharing
 
 # User Preferences
 
