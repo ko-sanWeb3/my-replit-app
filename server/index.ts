@@ -4,17 +4,36 @@ import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
 
-// 認証システムを完全に無効化
+// 認証システムを完全に無効化 - プロダクション環境でも強制的に無効化
 delete process.env.REPLIT_DOMAINS;
 delete process.env.REPL_ID;
 delete process.env.SESSION_SECRET;
 delete process.env.ISSUER_URL;
+delete process.env.REPLIT_AUTH_ENABLED;
 
-// すべての認証関連ミドルウェアを無効化
-app.use((req, res, next) => {
+// 強制的に認証を無効化
+process.env.DISABLE_REPLIT_AUTH = 'true';
+process.env.REPLIT_AUTH_ENABLED = 'false';
+process.env.NODE_ENV = process.env.NODE_ENV || 'development';
+
+console.log('Authentication completely disabled for guest-only access');
+
+// 強制的に全ての認証をバイパス
+app.use('*', (req: any, res, next) => {
+  // 認証関連のヘッダーを削除
+  delete req.headers.authorization;
+  delete req.headers['x-replit-user-id'];
+  delete req.headers['x-replit-user-name'];
+  
   // 認証チェックを強制的にスキップ
   req.isAuthenticated = () => false;
   req.user = null;
+  
+  // Replit認証リダイレクトを防ぐ
+  if (req.path === '/api/login' || req.path === '/api/callback' || req.path === '/api/auth/user') {
+    return res.redirect('/');
+  }
+  
   next();
 });
 

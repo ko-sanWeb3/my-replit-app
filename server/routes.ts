@@ -102,6 +102,13 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // 認証関連のルートを全て無効化してホームページにリダイレクト
+  app.get('/api/login', (req, res) => res.redirect('/'));
+  app.get('/api/logout', (req, res) => res.redirect('/'));
+  app.get('/api/callback', (req, res) => res.redirect('/'));
+  app.get('/api/auth/user', (req, res) => res.status(401).json({ message: "Auth disabled" }));
+  app.post('/api/auth/user', (req, res) => res.status(401).json({ message: "Auth disabled" }));
+
   // Guest user ID for demo purposes
   const GUEST_USER_ID = "guest_user";
 
