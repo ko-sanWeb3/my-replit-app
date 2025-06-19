@@ -2,27 +2,15 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { createAuthBypass, clearAuthHeaders } from "./bypass-auth";
-import { forcePublicDeployment } from "./force-public";
 
 const app = express();
 
-console.log('=== STARTING PUBLIC DEPLOYMENT SERVER ===');
+console.log('=== STARTING AUTHENTICATION-FREE SERVER ===');
 
-// Force public deployment by removing auth dependencies
-forcePublicDeployment();
-
-// Force public deployment environment
+// Force environment to guest mode
 process.env.DISABLE_REPLIT_AUTH = 'true';
 process.env.NO_AUTH = 'true';
 process.env.GUEST_ONLY = 'true';
-process.env.PUBLIC_DEPLOYMENT = 'true';
-process.env.REPLIT_DEPLOYMENT_TYPE = 'public';
-
-// Remove authentication-related variables that force private deployment
-delete process.env.SESSION_SECRET;
-delete process.env.REPLIT_DB_URL;
-delete process.env.AUTH_SECRET;
-delete process.env.NEXTAUTH_SECRET;
 
 // Apply authentication bypass layers
 app.use(clearAuthHeaders());
