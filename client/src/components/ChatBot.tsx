@@ -34,11 +34,30 @@ export default function ChatBot() {
   ];
 
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
+    // Load chat history from localStorage when component mounts
+    const savedMessages = localStorage.getItem('chatbot-history');
+    if (savedMessages) {
+      try {
+        const parsedMessages = JSON.parse(savedMessages).map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(parsedMessages);
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+      }
+    } else if (isOpen && messages.length === 0) {
       // Welcome message when first opened
       addBotMessage("こんにちは！食材管理のお手伝いをします。何かお困りのことはありますか？", 'text');
     }
   }, [isOpen]);
+
+  // Save messages to localStorage whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      localStorage.setItem('chatbot-history', JSON.stringify(messages));
+    }
+  }, [messages]);
 
   useEffect(() => {
     scrollToBottom();
@@ -189,17 +208,34 @@ export default function ChatBot() {
             </div>
             <div>
               <h3 className="font-medium">食材アシスタント</h3>
-              <p className="text-xs opacity-90">いつでもお手伝いします</p>
+              <p className="text-xs opacity-90">履歴: {messages.length}件</p>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsOpen(false)}
-            className="text-white hover:bg-white/20"
-          >
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center space-x-1">
+            {messages.length > 1 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setMessages([]);
+                  localStorage.removeItem('chatbot-history');
+                  addBotMessage("チャット履歴をクリアしました。何かお手伝いできることはありますか？", 'text');
+                }}
+                className="text-white hover:bg-white/20 text-xs px-2"
+                title="履歴をクリア"
+              >
+                🗑️
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOpen(false)}
+              className="text-white hover:bg-white/20"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Messages */}
