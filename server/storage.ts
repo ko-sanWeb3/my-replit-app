@@ -225,6 +225,36 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return newFeedback;
   }
+
+  // Initialize default categories for new users
+  async initializeDefaultCategories(userId: string): Promise<Category[]> {
+    const defaultCategories = [
+      { name: "冷蔵室", icon: "fas fa-snowflake", color: "#2196F3", userId },
+      { name: "野菜室", icon: "fas fa-leaf", color: "#4CAF50", userId },
+      { name: "冷凍庫", icon: "fas fa-icicles", color: "#6366f1", userId },
+      { name: "チルド", icon: "fas fa-thermometer-half", color: "#9C27B0", userId },
+    ];
+
+    const createdCategories = [];
+    for (const categoryData of defaultCategories) {
+      const [category] = await db
+        .insert(categories)
+        .values(categoryData)
+        .returning();
+      createdCategories.push(category);
+    }
+
+    return createdCategories;
+  }
+
+  // Fix delete operations to include user validation
+  async deleteFoodItem(id: number, userId: string): Promise<boolean> {
+    const result = await db
+      .delete(foodItems)
+      .where(and(eq(foodItems.id, id), eq(foodItems.userId, userId)))
+      .returning();
+    return result.length > 0;
+  }
 }
 
 export const storage = new DatabaseStorage();

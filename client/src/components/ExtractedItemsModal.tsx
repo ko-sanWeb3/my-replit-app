@@ -104,13 +104,16 @@ export default function ExtractedItemsModal({
     const itemsToSave = items
       .filter(item => item.categoryId && item.name?.trim())
       .map(item => {
-        // Calculate expiry date based on category
+        // Calculate expiry date based on category name
         const getExpiryDays = (categoryId: number): number => {
-          switch (categoryId) {
-            case 1: return 7;   // 冷蔵
-            case 2: return 5;   // 野菜室 
-            case 3: return 30;  // 冷凍庫
-            case 4: return 3;   // チルド
+          const category = validCategories.find(cat => cat.id === categoryId);
+          if (!category) return 7;
+          
+          switch (category.name) {
+            case "冷蔵室": return 7;   // 冷蔵室
+            case "野菜室": return 5;   // 野菜室 
+            case "冷凍庫": return 30;  // 冷凍庫
+            case "チルド": return 3;   // チルド
             default: return 7;
           }
         };
