@@ -30,31 +30,24 @@ export default function Home() {
 
   // Initialize categories mutation
   const initCategoriesMutation = useMutation({
-    mutationFn: async () => {
-      console.log('Initializing categories...');
-      return await apiRequest("POST", "/api/categories/init");
-    },
-    onSuccess: (data) => {
-      console.log('Categories initialized successfully:', data);
+    mutationFn: () => apiRequest("POST", "/api/categories/init"),
+    onSuccess: () => {
+      console.log('✅ Categories initialized successfully');
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
     },
     onError: (error) => {
-      console.error('Failed to initialize categories:', error);
+      console.error('❌ Failed to initialize categories:', error);
     },
   });
 
   // Initialize categories if needed
   React.useEffect(() => {
-    const userId = getCurrentUserId();
-    console.log('🏠 Home - Checking initialization for user:', userId);
-    console.log('🏠 Categories count:', categories.length);
-
-    if (categories.length === 0) {
-      console.log('🏠 Initializing categories...');
+    if (categories.length === 0 && !categoriesLoading && !initCategoriesMutation.isPending) {
+      console.log('🏠 Initializing categories for user:', getCurrentUserId());
       initCategoriesMutation.mutate();
     }
-  }, [categories.length]);
+  }, [categories.length, categoriesLoading]);
 
   // Debug logging
   React.useEffect(() => {

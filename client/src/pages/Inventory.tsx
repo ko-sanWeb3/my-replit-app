@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
@@ -36,6 +35,17 @@ export default function Inventory() {
 
   const isLoading = categoriesLoading || itemsLoading;
   const hasError = categoriesError || itemsError;
+
+  // Debug current state
+  React.useEffect(() => {
+    console.log('📦 Inventory State:', {
+      userId: currentUserId,
+      categoriesCount: categories.length,
+      itemsCount: allFoodItems.length,
+      isLoading,
+      hasError
+    });
+  }, [currentUserId, categories.length, allFoodItems.length, isLoading, hasError]);
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
@@ -75,7 +85,7 @@ export default function Inventory() {
 
         {!isLoading && !hasError && categories.map((category) => {
           const categoryItems = allFoodItems.filter(item => item.categoryId === category.id);
-          
+
           if (categoryItems.length === 0) return null;
 
           return (
@@ -87,7 +97,7 @@ export default function Inventory() {
                   {categoryItems.length}
                 </Badge>
               </div>
-              
+
               <div className="grid gap-3">
                 {categoryItems.map((item) => (
                   <FoodItemCard
