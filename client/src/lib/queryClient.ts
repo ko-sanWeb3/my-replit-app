@@ -39,8 +39,9 @@ export { getCurrentUserId };
 
 // Reset user ID (for debugging)
 export function resetUserId(): string {
-  const userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  localStorage.setItem('user-id', userId);
+  const userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+  localStorage.setItem(STORAGE_KEY, userId);
+  sessionStorage.setItem(STORAGE_KEY, userId);
   console.log('Reset to new user ID:', userId);
   return userId;
 }
