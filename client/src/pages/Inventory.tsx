@@ -26,8 +26,22 @@ export default function Inventory() {
     categoriesLoading,
     itemsLoading,
     categoriesError,
-    itemsError
+    itemsError,
+    categories: categories.map(cat => ({ id: cat.id, name: cat.name, userId: cat.userId })),
+    items: allFoodItems.map(item => ({ id: item.id, name: item.name, categoryId: item.categoryId, userId: item.userId }))
   });
+
+  // Force reload if user ID mismatch detected
+  React.useEffect(() => {
+    const hasUserIdMismatch = categories.some(cat => cat.userId && cat.userId !== currentUserId) ||
+                              allFoodItems.some(item => item.userId && item.userId !== currentUserId);
+    
+    if (hasUserIdMismatch) {
+      console.warn('🔄 User ID mismatch detected, forcing reload...');
+      queryClient.clear();
+      window.location.reload();
+    }
+  }, [categories, allFoodItems, currentUserId]);
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">

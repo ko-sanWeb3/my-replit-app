@@ -119,6 +119,30 @@ export const queryClient = new QueryClient({
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
+      mutationFn: async ({ endpoint, method = 'POST', data }) => {
+        const userId = getCurrentUserId();
+        console.log(`🔗 React Query mutation: ${method} ${endpoint} with user ID:`, userId);
+        
+        const response = await fetch(endpoint, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': userId,
+          },
+          credentials: 'include',
+          body: data ? JSON.stringify(data) : undefined,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Mutation Error: ${method} ${endpoint} - ${response.status}`, errorText);
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log(`✅ Mutation Success: ${method} ${endpoint}`, result);
+        return result;
+      },
       retry: 2,
     },
   },

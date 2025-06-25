@@ -32,12 +32,16 @@ export default function Home() {
 
   // Initialize categories mutation
   const initCategoriesMutation = useMutation({
-    mutationFn: async () => {
-      console.log('Initializing categories...');
-      return await apiRequest("POST", "/api/categories/init");
-    },
-    onSuccess: (data) => {
-      console.log('Categories initialized successfully:', data);
+    mutationFn: () => queryClient.getQueryCache().find({ queryKey: ["/api/categories/init"] })?.state?.data || 
+                    fetch("/api/categories/init", {
+                      method: "POST",
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'X-User-ID': getCurrentUserId(),
+                      },
+                      credentials: 'include',
+                    }).then(res => res.json()),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
     },
@@ -71,7 +75,7 @@ export default function Home() {
     const userId = getCurrentUserId();
     console.log('🏠 Home - Checking initialization for user:', userId);
     console.log('🏠 Categories count:', categories.length);
-    
+
     if (categories.length === 0) {
       console.log('🏠 Initializing categories...');
       initCategoriesMutation.mutate();
