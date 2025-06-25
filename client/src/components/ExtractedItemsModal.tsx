@@ -46,7 +46,7 @@ export default function ExtractedItemsModal({
     if (extractedItems && extractedItems.length > 0) {
       setItems(extractedItems.map(item => ({
         ...item,
-        quantity: item.quantity || 1,
+        quantity: 1, // Always default to 1
         categoryId: undefined
       })));
     }
@@ -109,6 +109,9 @@ export default function ExtractedItemsModal({
   };
 
   const handleSave = () => {
+    // Safety check for categories
+    const validCategories = Array.isArray(categories) ? categories : [];
+
     const itemsToSave = items
       .filter(item => item.categoryId && item.name?.trim())
       .map(item => {
@@ -258,7 +261,7 @@ export default function ExtractedItemsModal({
                         </label>
                         <Input
                           type="number"
-                          value={item.quantity}
+                          value={item.quantity || 1}
                           onChange={(e) => updateItem(index, "quantity", parseInt(e.target.value) || 1)}
                           min="1"
                         />
