@@ -350,25 +350,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserIdFromRequest(req);
       await ensureUserExists(userId);
-      const { items } = req.body;
+      
+      // Handle both {items: [...]} and direct array formats
+      const itemsData = Array.isArray(req.body) ? req.body : req.body.items;
 
-      if (!Array.isArray(items) || items.length === 0) {
+      if (!Array.isArray(itemsData) || itemsData.length === 0) {
         return res.status(400).json({ message: "Items array is required" });
       }
 
+      console.log("Batch create request:", { userId, itemsCount: itemsData.length, items: itemsData });
+
       const results = [];
-      for (const item of items) {
-        const foodItem = await storage.createFoodItem({
-          ...item,
-          userId,
-        });
-        results.push(foodItem);
+      for (const item of itemsData) {
+        try {
+          // Validate and prepare item data
+          const itemData = insertFoodItemSchema.parse({
+            ...item,
+            userId,
+            quantity: parseInt(item.quantity?.toString() || "1") || 1,
+            unit: item.unit || "個",
+          });
+
+          console.log("Creating food item:", itemData);
+          const foodItem = await storage.createFoodItem(itemData);
+          results.push(foodItem);
+        } catch (itemError) {
+          console.error("Error creating individual food item:", itemError, "Item data:", item);
+          // Continue with other items instead of failing the entire batch
+        }
       }
 
+      console.log("Batch creation completed:", { successCount: results.length, totalCount: itemsData.length });
       res.json({ success: true, items: results });
     } catch (error) {
       console.error("Error creating batch food items:", error);
-      res.status(500).json({ message: "Failed to create food items" });
+      res.status(500).json({ message: "Failed to create food items", error: error.message });
     }
   });
 

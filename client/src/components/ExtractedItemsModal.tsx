@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -44,30 +43,25 @@ export default function ExtractedItemsModal({
   }, [extractedItems]);
 
   const saveMutation = useMutation({
-    mutationFn: async (itemsToSave: any[]) => {
-      const validItems = itemsToSave.filter(item => 
-        item.name && 
-        item.categoryId && 
-        typeof item.quantity === 'number' && 
-        item.quantity > 0
-      );
+    mutationFn: async (items: any[]) => {
+      const userId = getUserId();
 
-      if (validItems.length === 0) {
-        throw new Error("保存する有効なアイテムがありません");
-      }
+      console.log("Saving batch items:", items);
 
       const response = await fetch("/api/food-items/batch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "X-User-ID": userId,
         },
         credentials: "include",
-        body: JSON.stringify({ items: validItems }),
+        body: JSON.stringify(items), // Send items directly, not wrapped in {items}
       });
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`${response.status}: ${errorText}`);
+        console.error("Batch save error response:", errorText);
+        throw new Error(`Batch save failed: ${response.status}: ${errorText}`);
       }
 
       return response.json();
@@ -108,7 +102,7 @@ export default function ExtractedItemsModal({
         const getExpiryDays = (categoryId: number): number => {
           const category = validCategories.find(cat => cat.id === categoryId);
           if (!category) return 7;
-          
+
           switch (category.name) {
             case "冷蔵室": return 7;   // 冷蔵室
             case "野菜室": return 5;   // 野菜室 
@@ -120,27 +114,31 @@ export default function ExtractedItemsModal({
 
         const expiryDays = getExpiryDays(item.categoryId);
         const expiryDate = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000)
-          .toISOString().split('T')[0];
+          .toISOString()
+          .split('T')[0];
+
+        // Make sure quantity is a valid number
+        const quantity = parseInt(item.quantity?.toString() || "1") || 1;
 
         return {
           name: item.name.trim(),
           categoryId: item.categoryId,
-          quantity: item.quantity,
+          quantity: quantity,
           unit: item.unit || "個",
-          expiryDate,
-          purchaseDate: new Date().toISOString().split('T')[0],
+          expiryDate: expiryDate,
         };
       });
 
     if (itemsToSave.length === 0) {
       toast({
         title: "エラー",
-        description: "保存先を選択してください",
+        description: "保存する食材がありません",
         variant: "destructive",
       });
       return;
     }
 
+    console.log("Saving items:", itemsToSave);
     saveMutation.mutate(itemsToSave);
   };
 
