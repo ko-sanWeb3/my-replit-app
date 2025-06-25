@@ -55,7 +55,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
         title: "Success",
         description: `${data.extractedItems?.length || 0}個の食材を検出しました`,
       });
-      
+
       // Show extracted items for selection
       setExtractedItems(Array.isArray(data.extractedItems) ? data.extractedItems : []);
       setShowExtractedItems(true);
@@ -73,7 +73,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -120,7 +120,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
               </Button>
             </CardTitle>
           </CardHeader>
-        
+
           <CardContent>
           {!selectedFile ? (
             <>
@@ -130,7 +130,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
                 <p className="text-sm text-gray-600 mb-2">レシートを撮影またはアップロード</p>
                 <p className="text-xs text-gray-400">Gemini AIが自動で食材を認識します</p>
               </div>
-              
+
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3">
                 <Button 
@@ -179,7 +179,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
                   />
                 </div>
               )}
-              
+
               {/* Action Buttons */}
               <div className="grid grid-cols-2 gap-3">
                 <Button 
@@ -217,7 +217,7 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
         isOpen={showExtractedItems}
         onClose={handleExtractedItemsClose}
         extractedItems={extractedItems}
-        categories={Array.isArray(categories) ? categories : []}
+        categories={categories}
       />
     </>
   );

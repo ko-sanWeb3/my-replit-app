@@ -33,6 +33,20 @@ export default function ExtractedItemsModal({ isOpen, onClose, extractedItems, c
   }}>({});
   const { toast } = useToast();
 
+  // Initialize default values for each item
+  useState(() => {
+    const initialItems: {[key: number]: any} = {};
+    extractedItems.forEach((item, index) => {
+      initialItems[index] = {
+        categoryId: 0,
+        quantity: 1, // Default to 1 instead of 8
+        unit: item.unit || "個",
+        expiryDate: ""
+      };
+    });
+    setSelectedItems(initialItems);
+  }, [extractedItems]);
+
   const addFoodItemsMutation = useMutation({
     mutationFn: async (items: any[]) => {
       const response = await fetch("/api/food-items/batch", {
@@ -162,13 +176,13 @@ export default function ExtractedItemsModal({ isOpen, onClose, extractedItems, c
                       <Label htmlFor={`category-${index}`}>保存先</Label>
                       <Select 
                         onValueChange={(value) => handleItemChange(index, 'categoryId', parseInt(value))}
-                        value={selectedItems[index]?.categoryId?.toString() || ""}
+                        value={selectedItems[index]?.categoryId > 0 ? selectedItems[index]?.categoryId?.toString() : ""}
                       >
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="保存先を選択してください" />
                         </SelectTrigger>
                         <SelectContent>
-                          {categories.map((category) => (
+                          {categories && categories.length > 0 ? categories.map((category) => (
                             <SelectItem key={category.id} value={category.id.toString()}>
                               <div className="flex items-center space-x-2">
                                 <div 
@@ -180,7 +194,9 @@ export default function ExtractedItemsModal({ isOpen, onClose, extractedItems, c
                                 <span>{category.name}</span>
                               </div>
                             </SelectItem>
-                          ))}
+                          )) : (
+                            <SelectItem value="" disabled>カテゴリーを読み込み中...</SelectItem>
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -194,7 +210,7 @@ export default function ExtractedItemsModal({ isOpen, onClose, extractedItems, c
                           type="number"
                           min="1"
                           placeholder="1"
-                          value={selectedItems[index]?.quantity || item.quantity || ""}
+                          value={selectedItems[index]?.quantity || 1}
                           onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
                         />
                       </div>
