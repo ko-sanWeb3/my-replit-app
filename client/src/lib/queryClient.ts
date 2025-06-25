@@ -1,30 +1,44 @@
 
 import { QueryClient } from "@tanstack/react-query";
 
-// User ID management - 完全に固定化
+// User ID management - 完全固定化
 const STORAGE_KEY = 'food_app_user_id';
-let CACHED_USER_ID: string | null = null;
+const SESSION_KEY = 'food_app_session';
+
+// グローバルユーザーID変数（一度設定したら変更しない）
+let GLOBAL_USER_ID: string | null = null;
 
 function getCurrentUserId(): string {
-  // キャッシュされたユーザーIDがあればそれを使用
-  if (CACHED_USER_ID) {
-    return CACHED_USER_ID;
+  // すでにグローバル変数に設定されていればそれを使用
+  if (GLOBAL_USER_ID) {
+    console.log('✅ Using cached user ID:', GLOBAL_USER_ID);
+    return GLOBAL_USER_ID;
   }
 
-  // localStorageから取得を試行
+  // localStorageから取得
   let userId = localStorage.getItem(STORAGE_KEY);
   
+  // sessionStorageからも取得を試行
+  if (!userId || userId === 'undefined' || userId === 'null') {
+    userId = sessionStorage.getItem(STORAGE_KEY);
+  }
+  
   if (!userId || userId === 'undefined' || userId === 'null' || userId.trim() === '') {
-    // 新しいユーザーIDを生成（より安定したID）
+    // 新しいユーザーIDを生成
     userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-    localStorage.setItem(STORAGE_KEY, userId);
     console.log('🆕 Generated new user ID:', userId);
   } else {
     console.log('✅ Using existing user ID:', userId);
   }
 
-  // キャッシュに保存
-  CACHED_USER_ID = userId;
+  // すべてのストレージに保存
+  localStorage.setItem(STORAGE_KEY, userId);
+  sessionStorage.setItem(STORAGE_KEY, userId);
+  sessionStorage.setItem(SESSION_KEY, 'active');
+  
+  // グローバル変数に固定
+  GLOBAL_USER_ID = userId;
+  
   return userId;
 }
 
@@ -35,7 +49,8 @@ export { getCurrentUserId };
 export function resetUserId(): string {
   const userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
   localStorage.setItem(STORAGE_KEY, userId);
-  CACHED_USER_ID = userId;
+  sessionStorage.setItem(STORAGE_KEY, userId);
+  GLOBAL_USER_ID = userId;
   console.log('🔄 Reset to new user ID:', userId);
   return userId;
 }
@@ -43,7 +58,7 @@ export function resetUserId(): string {
 // Enhanced API request helper
 export async function apiRequest(method: string, endpoint: string, data?: any) {
   const userId = getCurrentUserId();
-  console.log(`📡 ${method} ${endpoint} [User: ${userId}]`);
+  console.log(`Making ${method} request to ${endpoint} with user ID:`, userId);
 
   try {
     const response = await fetch(endpoint, {
@@ -63,7 +78,7 @@ export async function apiRequest(method: string, endpoint: string, data?: any) {
     }
 
     const result = await response.json();
-    console.log(`✅ API Success: ${method} ${endpoint}`, result);
+    console.log(`API Success: ${method} ${endpoint}`, result);
     return result;
   } catch (error) {
     console.error(`💥 API Request Failed: ${method} ${endpoint}`, error);
@@ -78,8 +93,8 @@ export const queryClient = new QueryClient({
         const endpoint = queryKey[0] as string;
         return apiRequest("GET", endpoint);
       },
-      staleTime: 1000 * 60 * 2, // 2分
-      gcTime: 1000 * 60 * 10,   // 10分
+      staleTime: 1000 * 60 * 5, // 5分
+      gcTime: 1000 * 60 * 15,   // 15分
       retry: 3,
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },

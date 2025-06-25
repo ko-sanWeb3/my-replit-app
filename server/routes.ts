@@ -175,12 +175,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function getUserIdFromRequest(req: any): string {
     const userIdFromHeader = req.headers['x-user-id'];
     
-    console.log('=== User ID Debug ===');
+    // より詳細なログ出力
+    console.log('=== User ID Request Debug ===');
     console.log('Raw header value:', userIdFromHeader);
     console.log('Header type:', typeof userIdFromHeader);
-    console.log('All headers:', Object.keys(req.headers));
+    console.log('Request URL:', req.url);
+    console.log('Request method:', req.method);
 
     if (userIdFromHeader && 
+        typeof userIdFromHeader === 'string' &&
         userIdFromHeader !== 'undefined' && 
         userIdFromHeader !== 'null' && 
         userIdFromHeader.trim() !== '' &&
@@ -189,8 +192,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return userIdFromHeader;
     }
 
-    // Generate fallback user ID
-    console.error('❌ No valid user ID found, generating fallback');
+    // Generate fallback user ID only if absolutely necessary
+    console.warn('⚠️ No valid user ID found in header, generating fallback');
     const newUserId = generateUniqueUserId();
     console.log('🆕 Generated fallback user ID:', newUserId);
     return newUserId;
