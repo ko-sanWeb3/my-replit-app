@@ -3,15 +3,30 @@ import { Package } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import FoodItemCard from "@/components/FoodItemCard";
 import BottomNavigation from "@/components/BottomNavigation";
+import { getCurrentUserId } from "@/lib/queryClient";
 
 export default function Inventory() {
+  // Debug user ID
+  const currentUserId = getCurrentUserId();
+  console.log('🏷️ Inventory page - Current User ID:', currentUserId);
+
   // Fetch categories and food items
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["/api/categories"],
   });
 
-  const { data: allFoodItems = [] } = useQuery({
+  const { data: allFoodItems = [], isLoading: itemsLoading, error: itemsError } = useQuery({
     queryKey: ["/api/food-items"],
+  });
+
+  console.log('📊 Inventory Debug:', {
+    userId: currentUserId,
+    categoriesCount: categories.length,
+    itemsCount: allFoodItems.length,
+    categoriesLoading,
+    itemsLoading,
+    categoriesError,
+    itemsError
   });
 
   return (

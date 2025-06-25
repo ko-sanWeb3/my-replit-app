@@ -68,10 +68,23 @@ export default function Home() {
 
   // Initialize categories on first load
   useEffect(() => {
+    const userId = getCurrentUserId();
+    console.log('🏠 Home - Checking initialization for user:', userId);
+    console.log('🏠 Categories count:', categories.length);
+    
     if (categories.length === 0) {
+      console.log('🏠 Initializing categories...');
       initCategoriesMutation.mutate();
     }
   }, [categories.length]);
+
+  // Force refetch when user ID changes
+  useEffect(() => {
+    const userId = getCurrentUserId();
+    console.log('🔄 User ID effect:', userId);
+    queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
+  }, []);
 
   // Get expiring items (items expiring in next 3 days)
   const expiringItems = allFoodItems.filter((item: any) => {

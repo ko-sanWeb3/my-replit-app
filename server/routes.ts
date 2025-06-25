@@ -181,6 +181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('Header type:', typeof userIdFromHeader);
     console.log('Request URL:', req.url);
     console.log('Request method:', req.method);
+    console.log('All headers:', Object.keys(req.headers));
 
     if (userIdFromHeader && 
         typeof userIdFromHeader === 'string' &&
@@ -193,7 +194,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
 
     // Generate fallback user ID only if absolutely necessary
-    console.warn('⚠️ No valid user ID found in header, generating fallback');
+    console.error('❌ CRITICAL: No valid user ID found in header, this will cause data loss!');
+    console.error('Expected header: x-user-id, got:', userIdFromHeader);
     const newUserId = generateUniqueUserId();
     console.log('🆕 Generated fallback user ID:', newUserId);
     return newUserId;

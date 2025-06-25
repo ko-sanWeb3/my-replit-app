@@ -91,7 +91,27 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: async ({ queryKey }) => {
         const endpoint = queryKey[0] as string;
-        return apiRequest("GET", endpoint);
+        const userId = getCurrentUserId();
+        console.log(`🔗 React Query request: ${endpoint} with user ID:`, userId);
+        
+        const response = await fetch(endpoint, {
+          method: "GET",
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': userId,
+          },
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`❌ Query Error: ${endpoint} - ${response.status}`, errorText);
+          throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log(`✅ Query Success: ${endpoint}`, result);
+        return result;
       },
       staleTime: 1000 * 60 * 5, // 5分
       gcTime: 1000 * 60 * 15,   // 15分
