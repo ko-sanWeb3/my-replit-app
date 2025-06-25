@@ -51,18 +51,23 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
       return response.json();
     },
     onSuccess: (data) => {
+      console.log("Receipt analysis success:", data);
+      
+      const items = Array.isArray(data.extractedItems) ? data.extractedItems : [];
+      
       toast({
-        title: "Success",
-        description: `${data.extractedItems?.length || 0}個の食材を検出しました`,
+        title: "解析完了",
+        description: `${items.length}個の食材を検出しました`,
       });
 
       // Show extracted items for selection
-      setExtractedItems(Array.isArray(data.extractedItems) ? data.extractedItems : []);
+      setExtractedItems(items);
       setShowExtractedItems(true);
     },
     onError: (error) => {
+      console.error("Receipt analysis error:", error);
       toast({
-        title: "Error",
+        title: "エラー",
         description: "レシートの解析に失敗しました",
         variant: "destructive",
       });
