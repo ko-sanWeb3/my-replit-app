@@ -31,15 +31,14 @@ export default function Inventory() {
     items: allFoodItems.map(item => ({ id: item.id, name: item.name, categoryId: item.categoryId, userId: item.userId }))
   });
 
-  // Force reload if user ID mismatch detected
+  // Check for user ID consistency
   React.useEffect(() => {
     const hasUserIdMismatch = categories.some(cat => cat.userId && cat.userId !== currentUserId) ||
                               allFoodItems.some(item => item.userId && item.userId !== currentUserId);
     
     if (hasUserIdMismatch) {
-      console.warn('🔄 User ID mismatch detected, forcing reload...');
+      console.warn('🔄 User ID mismatch detected, clearing cache...');
       queryClient.clear();
-      window.location.reload();
     }
   }, [categories, allFoodItems, currentUserId]);
 

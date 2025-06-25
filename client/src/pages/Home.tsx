@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Bell, Camera, ExternalLink, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,7 @@ import FoodItemCard from "@/components/FoodItemCard";
 import BottomNavigation from "@/components/BottomNavigation";
 import { getFoodIcon } from "@/lib/foodIcons";
 import type { Category, FoodItem, ShoppingItem } from "@shared/schema";
+import { getCurrentUserId, apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const { toast } = useToast();
