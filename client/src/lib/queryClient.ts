@@ -1,5 +1,15 @@
 import { QueryClient } from "@tanstack/react-query";
 
+// Create and export the query client
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
+
 // User ID management
 export function getUserId(): string {
   let userId = localStorage.getItem('userId');
