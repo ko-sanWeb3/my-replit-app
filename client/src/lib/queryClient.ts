@@ -1,55 +1,49 @@
+
 import { QueryClient } from "@tanstack/react-query";
 
-// User ID management
-const STORAGE_KEY = 'guest_user_id';
-const SESSION_KEY = 'guest_session_active';
+// User ID management - 完全に固定化
+const STORAGE_KEY = 'food_app_user_id';
+let CACHED_USER_ID: string | null = null;
 
 function getCurrentUserId(): string {
-  // First check session storage for temporary persistence
-  let userId = sessionStorage.getItem(STORAGE_KEY);
-
-  if (!userId) {
-    // Then check localStorage for permanent persistence
-    userId = localStorage.getItem(STORAGE_KEY);
+  // キャッシュされたユーザーIDがあればそれを使用
+  if (CACHED_USER_ID) {
+    return CACHED_USER_ID;
   }
 
-  if (!userId) {
-    // Generate new user ID with more entropy
+  // localStorageから取得を試行
+  let userId = localStorage.getItem(STORAGE_KEY);
+  
+  if (!userId || userId === 'undefined' || userId === 'null' || userId.trim() === '') {
+    // 新しいユーザーIDを生成（より安定したID）
     userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
-    // Store in both storages
     localStorage.setItem(STORAGE_KEY, userId);
-    sessionStorage.setItem(STORAGE_KEY, userId);
-    sessionStorage.setItem(SESSION_KEY, 'true');
-    console.log('Generated new user ID:', userId);
+    console.log('🆕 Generated new user ID:', userId);
   } else {
-    console.log('Using existing user ID:', userId);
-    // Ensure it's in both storages
-    localStorage.setItem(STORAGE_KEY, userId);
-    sessionStorage.setItem(STORAGE_KEY, userId);
+    console.log('✅ Using existing user ID:', userId);
   }
 
+  // キャッシュに保存
+  CACHED_USER_ID = userId;
   return userId;
 }
 
-// Initialize user ID immediately when module loads
-const CURRENT_USER_ID = getCurrentUserId();
-
-// Export the current user ID for consistent usage  
+// Export the current user ID
 export { getCurrentUserId };
 
-// Reset user ID (for debugging)
+// Reset user ID (for debugging only)
 export function resetUserId(): string {
   const userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
   localStorage.setItem(STORAGE_KEY, userId);
-  sessionStorage.setItem(STORAGE_KEY, userId);
-  console.log('Reset to new user ID:', userId);
+  CACHED_USER_ID = userId;
+  console.log('🔄 Reset to new user ID:', userId);
   return userId;
 }
 
-// API request helper with user ID and better error handling
+// Enhanced API request helper
 export async function apiRequest(method: string, endpoint: string, data?: any) {
   const userId = getCurrentUserId();
-  console.log(`Making ${method} request to ${endpoint} with user ID:`, userId);
+  console.log(`📡 ${method} ${endpoint} [User: ${userId}]`);
 
   try {
     const response = await fetch(endpoint, {
@@ -58,19 +52,21 @@ export async function apiRequest(method: string, endpoint: string, data?: any) {
         'Content-Type': 'application/json',
         'X-User-ID': userId,
       },
+      credentials: 'include',
       body: data ? JSON.stringify(data) : undefined,
     });
 
     if (!response.ok) {
-      console.error(`API Error: ${method} ${endpoint} - ${response.status} ${response.statusText}`);
-      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`❌ API Error: ${method} ${endpoint} - ${response.status}`, errorText);
+      throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
-    console.log(`API Success: ${method} ${endpoint}`, result);
+    console.log(`✅ API Success: ${method} ${endpoint}`, result);
     return result;
   } catch (error) {
-    console.error(`API Request Failed: ${method} ${endpoint}`, error);
+    console.error(`💥 API Request Failed: ${method} ${endpoint}`, error);
     throw error;
   }
 }
@@ -82,19 +78,13 @@ export const queryClient = new QueryClient({
         const endpoint = queryKey[0] as string;
         return apiRequest("GET", endpoint);
       },
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: (failureCount, error) => {
-        console.error(`Query failed (attempt ${failureCount}):`, error);
-        return failureCount < 3;
-      },
-      onError: (error) => {
-        console.error('Query error:', error);
-      },
+      staleTime: 1000 * 60 * 2, // 2分
+      gcTime: 1000 * 60 * 10,   // 10分
+      retry: 3,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
     mutations: {
-      onError: (error) => {
-        console.error('Mutation error:', error);
-      },
+      retry: 2,
     },
   },
 });

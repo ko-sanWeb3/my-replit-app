@@ -19,6 +19,16 @@ export default function Home() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [extractedItems, setExtractedItems] = useState<any[]>([]);
+  const [showExtractedItems, setShowExtractedItems] = useState(false);
+
+  // Force user ID initialization on component mount
+  useEffect(() => {
+    import("@/lib/queryClient").then(({ getCurrentUserId }) => {
+      const userId = getCurrentUserId();
+      console.log('🏠 Home page initialized with user ID:', userId);
+    });
+  }, []);
 
   // Initialize categories mutation
   const initCategoriesMutation = useMutation({
