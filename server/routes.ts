@@ -175,14 +175,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function getUserIdFromRequest(req: any): string {
     // Check for user ID in custom header (sent from frontend)
     const userIdFromHeader = req.headers['x-user-id'];
-    if (userIdFromHeader && userIdFromHeader !== 'undefined' && userIdFromHeader !== 'null') {
+    if (userIdFromHeader && userIdFromHeader !== 'undefined' && userIdFromHeader !== 'null' && userIdFromHeader.trim() !== '') {
       console.log('Using existing user ID from header:', userIdFromHeader);
       return userIdFromHeader;
     }
 
-    // Fallback to generating new ID (will be saved by frontend)
+    // This should not happen if frontend is working correctly
+    console.error('No valid user ID found in request headers');
     const newUserId = generateUniqueUserId();
-    console.log('Generated new user ID:', newUserId);
+    console.log('Generated fallback user ID:', newUserId);
     return newUserId;
   }
 

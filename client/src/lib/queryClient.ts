@@ -1,21 +1,28 @@
 import { QueryClient } from "@tanstack/react-query";
 
-// Generate or get user ID with better persistence
-function getUserId(): string {
-  try {
-    let userId = localStorage.getItem('user-id');
-    if (!userId || userId === 'undefined' || userId === 'null') {
-      userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      localStorage.setItem('user-id', userId);
-      console.log('Generated new user ID:', userId);
-    } else {
-      console.log('Using existing user ID:', userId);
-    }
-    return userId;
-  } catch (error) {
-    console.error('Error accessing localStorage:', error);
-    return `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+// User ID management
+export function getUserId(): string {
+  // Try to get existing user ID from localStorage
+  let userId = localStorage.getItem('user-id');
+
+  if (!userId || userId === 'undefined' || userId === 'null') {
+    // Generate new user ID and save it
+    userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('user-id', userId);
+    console.log('Generated new user ID:', userId);
+  } else {
+    console.log('Using existing user ID:', userId);
   }
+
+  return userId;
+}
+
+// Initialize user ID immediately when module loads
+const CURRENT_USER_ID = getUserId();
+
+// Export the current user ID for consistent usage
+export function getCurrentUserId(): string {
+  return CURRENT_USER_ID;
 }
 
 // Reset user ID (for debugging)
@@ -28,7 +35,7 @@ export function resetUserId(): string {
 
 // API request helper with user ID and better error handling
 export async function apiRequest(method: string, endpoint: string, data?: any) {
-  const userId = getUserId();
+  const userId = getCurrentUserId();
   console.log(`Making ${method} request to ${endpoint} with user ID:`, userId);
 
   try {
