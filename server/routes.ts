@@ -25,13 +25,60 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
 }> {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
 
+  console.log("🔑 Checking API key:", GEMINI_API_KEY ? "✅ Found" : "❌ Missing");
+
   if (!GEMINI_API_KEY) {
+    console.error("❌ GEMINI_API_KEY not found in environment variables");
     throw new Error("Gemini API key not found in environment variables. Please add GEMINI_API_KEY to Secrets.");
   }
 
   try {
+    console.log("📷 Processing image:", {
+      size: imageBuffer.length,
+      sizeKB: Math.round(imageBuffer.length / 1024)
+    });
+
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
+    console.log("🔄 Image converted to base64, length:", base64Image.length);
+
+    const requestBody = {
+      contents: [
+        {
+          parts: [
+            {
+              text: `このレシートの画像から食品・食材のみを正確に抽出してください。以下のJSON形式で返してください：
+
+{
+  "extractedItems": [
+    {
+      "name": "商品名（正確な名前）",
+      "category": "冷蔵" | "冷凍" | "野菜" | "常温",
+      "quantity": 数量（数値、デフォルト1）,
+      "unit": "個" | "袋" | "本" | "パック" | "g" | "ml"
+    }
+  ]
+}
+
+重要な注意事項：
+- 食品・食材のみを抽出（日用品、雑貨等は除外）
+- 商品名は正確に読み取る
+- 数量が不明な場合は1を設定
+- 最低1個以上の食材を検出するよう努める
+- レスポンスは必ずJSON形式で返す`
+            },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: base64Image
+              }
+            }
+          ]
+        }
+      ]
+    };
+
+    console.log("🌐 Sending request to Gemini API...");
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
@@ -40,63 +87,91 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: `このレシートの画像から食品・食材のみを抽出してください。以下のJSON形式で返してください：
-{
-  "extractedItems": [
-    {
-      "name": "商品名",
-      "category": "冷蔵" | "冷凍" | "野菜" | "常温",
-      "quantity": 数量（数値）,
-      "unit": "個" | "袋" | "本" | "パック"
-    }
-  ]
-}
-
-食品以外の商品（日用品、雑貨等）は除外してください。`
-                },
-                {
-                  inlineData: {
-                    mimeType: "image/jpeg",
-                    data: base64Image
-                  }
-                }
-              ]
-            }
-          ]
-        })
+        body: JSON.stringify(requestBody)
       }
     );
 
+    console.log("📡 Gemini API response status:", response.status);
+
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error("❌ Gemini API error response:", errorText);
+      
+      if (response.status === 400) {
+        throw new Error("画像の形式が正しくないか、APIリクエストに問題があります");
+      } else if (response.status === 403) {
+        throw new Error("Gemini API キーが無効です");
+      } else if (response.status === 429) {
+        throw new Error("API利用制限に達しました。しばらく待ってから再試行してください");
+      }
+      
       throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
     }
 
     const result = await response.json();
-    const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("✅ Gemini API response received:", JSON.stringify(result, null, 2));
 
-    // Extract JSON from the response
+    const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    console.log("📝 Generated text:", generatedText);
+
+    // Extract JSON from the response with improved parsing
     let extractedItems = [];
     try {
+      // Try to find JSON in the response
       const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const parsed = JSON.parse(jsonMatch[0]);
         extractedItems = parsed.extractedItems || [];
+        console.log("✅ Successfully parsed items:", extractedItems.length);
+      } else {
+        console.warn("⚠️ No JSON found in response, trying alternative parsing");
+        
+        // Fallback: look for items in text format
+        const lines = generatedText.split('\n');
+        for (const line of lines) {
+          if (line.includes('名') || line.includes('食材') || line.includes('商品')) {
+            // Simple text parsing fallback
+            const itemName = line.replace(/[^\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FAF\u0041-\u005A\u0061-\u007A\u0030-\u0039]/g, '').trim();
+            if (itemName.length > 0) {
+              extractedItems.push({
+                name: itemName,
+                category: "冷蔵",
+                quantity: 1,
+                unit: "個"
+              });
+            }
+          }
+        }
       }
     } catch (parseError) {
-      console.error("Failed to parse Gemini response:", parseError);
+      console.error("❌ Failed to parse Gemini response:", parseError);
+      console.error("Raw response text:", generatedText);
+      
+      // Last resort: extract any Japanese food words
+      const foodPattern = /(豆腐|肉|魚|野菜|米|パン|卵|牛乳|チーズ|ヨーグルト|果物|トマト|きゅうり|にんじん|たまねぎ|じゃがいも|キャベツ|レタス|ほうれん草)/g;
+      const matches = generatedText.match(foodPattern);
+      if (matches) {
+        extractedItems = matches.map(item => ({
+          name: item,
+          category: "冷蔵",
+          quantity: 1,
+          unit: "個"
+        }));
+        console.log("🔄 Extracted using pattern matching:", extractedItems.length);
+      }
     }
+
+    console.log("📊 Final extracted items:", extractedItems);
 
     return {
       text: generatedText,
       extractedItems
     };
   } catch (error) {
-    console.error("Gemini API error:", error);
+    console.error("❌ Gemini API error:", error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Failed to analyze receipt with Gemini API");
   }
 }

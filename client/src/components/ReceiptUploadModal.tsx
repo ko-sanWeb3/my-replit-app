@@ -81,6 +81,12 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
+      console.log("🚀 Starting receipt analysis:", {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type
+      });
+
       const formData = new FormData();
       formData.append("receipt", file);
 
@@ -88,46 +94,82 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
         method: "POST",
         body: formData,
         credentials: "include",
+        headers: {
+          'x-user-id': localStorage.getItem('fridge-keeper-user-id') || 'undefined'
+        }
       });
+
+      console.log("📡 Response status:", response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`${response.status}: ${errorText || response.statusText}`);
+        console.error("❌ Response error:", errorText);
+        
+        // More specific error messages
+        if (response.status === 500 && errorText.includes('API key')) {
+          throw new Error("Gemini API キーが設定されていません。管理者にお問い合わせください。");
+        } else if (response.status === 413) {
+          throw new Error("ファイルサイズが大きすぎます。10MB以下の画像をご利用ください。");
+        } else if (response.status === 400) {
+          throw new Error("画像ファイルが正しくありません。JPEG、PNG形式の画像をご利用ください。");
+        }
+        
+        throw new Error(`解析エラー (${response.status}): ${errorText || response.statusText}`);
       }
 
-      return response.json();
+      const result = await response.json();
+      console.log("✅ Analysis result:", result);
+      return result;
     },
     onSuccess: (data) => {
-      console.log("Receipt analysis success:", data);
+      console.log("✅ Receipt analysis success:", data);
       
       const items = Array.isArray(data.extractedItems) ? data.extractedItems : [];
+      console.log("📝 Extracted items:", items);
       
-      // Ensure we have valid items
-      if (items.length === 0) {
+      // Better validation for empty results
+      if (!items || items.length === 0) {
         toast({
           title: "解析完了",
-          description: "食材が検出されませんでした。もう一度お試しください。",
+          description: "食材が検出されませんでした。レシートが鮮明に写っているか確認して、もう一度お試しください。",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate items have required fields
+      const validItems = items.filter(item => 
+        item && 
+        typeof item.name === 'string' && 
+        item.name.trim().length > 0
+      );
+
+      if (validItems.length === 0) {
+        toast({
+          title: "解析完了", 
+          description: "有効な食材名が検出されませんでした。レシートを再度撮影してお試しください。",
           variant: "destructive",
         });
         return;
       }
 
       toast({
-        title: "解析完了",
-        description: `${items.length}個の食材を検出しました`,
+        title: "✅ 解析完了",
+        description: `${validItems.length}個の食材を検出しました`,
       });
 
-      // Add delay to ensure state updates properly
       setTimeout(() => {
-        setExtractedItems(items);
+        setExtractedItems(validItems);
         setShowExtractedItems(true);
       }, 100);
     },
     onError: (error) => {
-      console.error("Receipt analysis error:", error);
+      console.error("❌ Receipt analysis error:", error);
+      const errorMessage = error instanceof Error ? error.message : "レシートの解析に失敗しました";
+      
       toast({
-        title: "エラー",
-        description: "レシートの解析に失敗しました",
+        title: "❌ 解析エラー",
+        description: errorMessage,
         variant: "destructive",
       });
     },
