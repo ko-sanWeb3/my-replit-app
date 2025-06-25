@@ -195,22 +195,43 @@ export default function ExtractedItemsModal({
                       </label>
                       <Select
                         value={item.categoryId?.toString() || ""}
-                        onValueChange={(value) => updateItem(index, "categoryId", parseInt(value))}
+                        onValueChange={(value) => {
+                          console.log("Category selected:", value);
+                          updateItem(index, "categoryId", parseInt(value));
+                        }}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full">
                           <SelectValue placeholder="保存先を選択してください" />
                         </SelectTrigger>
                         <SelectContent>
-                          {validCategories.map((category) => (
-                            <SelectItem key={category.id} value={category.id.toString()}>
-                              <div className="flex items-center space-x-2">
-                                <i className={category.icon} style={{ color: category.color }}></i>
-                                <span>{category.name}</span>
-                              </div>
+                          {validCategories.length === 0 ? (
+                            <SelectItem value="loading" disabled>
+                              読み込み中...
                             </SelectItem>
-                          ))}
+                          ) : (
+                            validCategories.map((category) => (
+                              <SelectItem 
+                                key={category.id} 
+                                value={category.id.toString()}
+                                className="flex items-center space-x-2"
+                              >
+                                <div className="flex items-center space-x-2">
+                                  <i 
+                                    className={category.icon || "fas fa-circle"} 
+                                    style={{ color: category.color || "#666" }}
+                                  ></i>
+                                  <span>{category.name}</span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
+                      {validCategories.length === 0 && (
+                        <p className="text-xs text-red-500 mt-1">
+                          カテゴリーの読み込みに失敗しました
+                        </p>
+                      )}
                     </div>
 
                     {/* Quantity */}

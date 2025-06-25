@@ -232,16 +232,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Category routes
+  // Get categories
   app.get('/api/categories', async (req: any, res) => {
     try {
       const userId = getUserIdFromRequest(req);
       await ensureUserExists(userId);
-      const categories = await storage.getUserCategories(userId);
-      res.json(categories);
+
+      let categories = await storage.getUserCategories(userId);
+
+      // If no categories exist, initialize default ones
+      if (!categories || categories.length === 0) {
+        console.log("No categories found, initializing defaults for user:", userId);
+        await storage.initializeDefaultCategories(userId);
+        categories = await storage.getUserCategories(userId);
+      }
+
+      console.log("Categories response:", categories);
+      res.json(categories || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
-      res.status(500).json({ message: "Failed to fetch categories" });
+      res.status(500).json({ message: "Failed to fetch categories", error: error.message });
     }
   });
 

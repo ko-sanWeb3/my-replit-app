@@ -30,7 +30,19 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
   // Fetch categories for the extracted items modal
   const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["/api/categories"],
-    retry: 2,
+    queryFn: async () => {
+      const response = await fetch("/api/categories", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error(`Categories fetch failed: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("Categories fetched:", data);
+      return Array.isArray(data) ? data : [];
+    },
+    retry: 3,
+    retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
@@ -38,11 +50,16 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
   useEffect(() => {
     if (categoriesError) {
       console.error("Categories query error:", categoriesError);
+      toast({
+        title: "エラー",
+        description: "カテゴリー情報の取得に失敗しました",
+        variant: "destructive",
+      });
     }
     if (categories) {
       console.log("Categories loaded:", categories);
     }
-  }, [categories, categoriesError]);
+  }, [categories, categoriesError, toast]);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
