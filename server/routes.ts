@@ -125,7 +125,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   <div class="container">
     <div class="logo">🥗</div>
     <h1>食材管理アプリ</h1>
-    <p>Replitの認証をバイパスして直接アクセスできます。このURLをシェアしてご利用ください。</p>
+    <p>各ユーザーが個別のデータを持つ食材管理アプリです。ブラウザごとに独立した在庫データを管理できます。</p>
     <button class="button" onclick="loadApp()">アプリを開く</button>
     <div id="app"></div>
   </div>
@@ -145,10 +145,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // 認証エンドポイントを全てゲストレスポンスに変更
-  app.get('/api/auth/user', (req, res) => {
+  app.get('/api/auth/user', async (req, res) => {
+    const userId = getUserIdFromRequest(req);
+    await ensureUserExists(userId);
+    
     res.json({
-      id: "guest_user",
-      email: "guest@example.com",
+      id: userId,
+      email: `${userId}@example.com`,
       firstName: "Guest",
       lastName: "User",
       profileImageUrl: null,
@@ -163,29 +166,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.all('/api/callback*', (req, res) => res.redirect('/direct'));
   app.all('/auth*', (req, res) => res.redirect('/direct'));
 
-  // Guest user ID for demo purposes
-  const GUEST_USER_ID = "guest_user";
+  // Function to generate unique user ID
+  function generateUniqueUserId(): string {
+    return `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
 
-  // Ensure guest user exists
-  try {
-    let guestUser = await storage.getUser(GUEST_USER_ID);
-    if (!guestUser) {
-      await storage.upsertUser({
-        id: GUEST_USER_ID,
-        email: "guest@example.com",
-        firstName: "Guest",
-        lastName: "User",
-        profileImageUrl: null,
-      });
+  // Function to get or create user ID from headers
+  function getUserIdFromRequest(req: any): string {
+    // Check for user ID in custom header (sent from frontend)
+    const userIdFromHeader = req.headers['x-user-id'];
+    if (userIdFromHeader && userIdFromHeader !== 'undefined') {
+      return userIdFromHeader;
     }
-  } catch (error) {
-    console.log("Creating guest user...");
+    
+    // Fallback to generating new ID (will be saved by frontend)
+    return generateUniqueUserId();
+  }
+
+  // Function to ensure user exists
+  async function ensureUserExists(userId: string) {
+    try {
+      let user = await storage.getUser(userId);
+      if (!user) {
+        await storage.upsertUser({
+          id: userId,
+          email: `${userId}@example.com`,
+          firstName: "Guest",
+          lastName: "User",
+          profileImageUrl: null,
+        });
+      }
+    } catch (error) {
+      console.log(`Creating user ${userId}...`);
+    }
   }
 
   // Initialize default categories for new users
   app.post('/api/categories/init', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       
       // Check if user already has categories
       const existingCategories = await storage.getUserCategories(userId);
@@ -215,7 +235,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Category routes
   app.get('/api/categories', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       const categories = await storage.getUserCategories(userId);
       res.json(categories);
     } catch (error) {
@@ -226,7 +247,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/categories', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       const categoryData = insertCategorySchema.parse({ ...req.body, userId });
       const category = await storage.createCategory(categoryData);
       res.json(category);
@@ -239,7 +261,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Food item routes
   app.get('/api/food-items', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       const { categoryId } = req.query;
       
       let items;
@@ -258,7 +281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/food-items', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       console.log("Raw request body:", req.body);
       console.log("User ID:", userId);
       console.log("Content-Type:", req.get('Content-Type'));
@@ -305,7 +329,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/food-items/expiring', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       const days = parseInt(req.query.days as string) || 3;
       const items = await storage.getExpiringItems(userId, days);
       res.json(items);
@@ -318,7 +343,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fix expiry dates for existing items
   app.post('/api/food-items/fix-expiry-dates', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       const allItems = await storage.getAllFoodItems(userId);
       
       const getExpiryDays = (itemName: string, categoryId: number): number => {
@@ -389,7 +415,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Shopping list routes
   app.get('/api/shopping-items', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       const items = await storage.getShoppingItems(userId);
       res.json(items);
     } catch (error) {
@@ -400,7 +427,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/shopping-items', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       const itemData = insertShoppingItemSchema.parse({ ...req.body, userId });
       const item = await storage.createShoppingItem(itemData);
       res.json(item);
@@ -436,7 +464,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Receipt OCR route
   app.post('/api/receipts/analyze', upload.single('receipt'), async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       
       if (!req.file) {
         return res.status(400).json({ message: "No receipt image provided" });
@@ -468,7 +497,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Nutrition summary route
   app.get('/api/nutrition/summary', async (req: any, res) => {
     try {
-      const userId = GUEST_USER_ID;
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
       const items = await storage.getAllFoodItems(userId);
       
       // Calculate total nutrition (simplified calculation)
