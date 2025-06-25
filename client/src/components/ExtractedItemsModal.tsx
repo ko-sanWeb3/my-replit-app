@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -29,14 +29,19 @@ export default function ExtractedItemsModal({
   extractedItems = [], 
   categories = [] 
 }: ExtractedItemsModalProps) {
-  const [items, setItems] = useState<(ExtractedItem & { categoryId?: number; quantity: number })[]>(
-    extractedItems.map(item => ({
-      ...item,
-      quantity: item.quantity || 1,
-      categoryId: undefined
-    }))
-  );
+  const [items, setItems] = useState<(ExtractedItem & { categoryId?: number; quantity: number })[]>([]);
   const { toast } = useToast();
+
+  // Update items when extractedItems changes
+  useEffect(() => {
+    if (extractedItems && extractedItems.length > 0) {
+      setItems(extractedItems.map(item => ({
+        ...item,
+        quantity: item.quantity || 1,
+        categoryId: undefined
+      })));
+    }
+  }, [extractedItems]);
 
   const saveMutation = useMutation({
     mutationFn: async (itemsToSave: any[]) => {
@@ -140,6 +145,14 @@ export default function ExtractedItemsModal({
 
   // Safety check for categories
   const validCategories = Array.isArray(categories) ? categories : [];
+
+  // Debug logging
+  console.log("ExtractedItemsModal render:", {
+    isOpen,
+    extractedItems: extractedItems?.length || 0,
+    categories: validCategories?.length || 0,
+    items: items?.length || 0
+  });
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end justify-center">

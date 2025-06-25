@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -28,9 +28,21 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
   const { toast } = useToast();
 
   // Fetch categories for the extracted items modal
-  const { data: categories } = useQuery({
+  const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["/api/categories"],
+    retry: 2,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
+
+  // Debug categories
+  useEffect(() => {
+    if (categoriesError) {
+      console.error("Categories query error:", categoriesError);
+    }
+    if (categories) {
+      console.log("Categories loaded:", categories);
+    }
+  }, [categories, categoriesError]);
 
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
@@ -55,14 +67,26 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
       
       const items = Array.isArray(data.extractedItems) ? data.extractedItems : [];
       
+      // Ensure we have valid items
+      if (items.length === 0) {
+        toast({
+          title: "解析完了",
+          description: "食材が検出されませんでした。もう一度お試しください。",
+          variant: "destructive",
+        });
+        return;
+      }
+
       toast({
         title: "解析完了",
         description: `${items.length}個の食材を検出しました`,
       });
 
-      // Show extracted items for selection
-      setExtractedItems(items);
-      setShowExtractedItems(true);
+      // Add delay to ensure state updates properly
+      setTimeout(() => {
+        setExtractedItems(items);
+        setShowExtractedItems(true);
+      }, 100);
     },
     onError: (error) => {
       console.error("Receipt analysis error:", error);
