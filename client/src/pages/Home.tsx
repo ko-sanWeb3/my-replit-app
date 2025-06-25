@@ -32,16 +32,12 @@ export default function Home() {
 
   // Initialize categories mutation
   const initCategoriesMutation = useMutation({
-    mutationFn: () => queryClient.getQueryCache().find({ queryKey: ["/api/categories/init"] })?.state?.data || 
-                    fetch("/api/categories/init", {
-                      method: "POST",
-                      headers: {
-                        'Content-Type': 'application/json',
-                        'X-User-ID': getCurrentUserId(),
-                      },
-                      credentials: 'include',
-                    }).then(res => res.json()),
-    onSuccess: () => {
+    mutationFn: async () => {
+      console.log('Initializing categories...');
+      return await apiRequest("POST", "/api/categories/init");
+    },
+    onSuccess: (data) => {
+      console.log('Categories initialized successfully:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
     },

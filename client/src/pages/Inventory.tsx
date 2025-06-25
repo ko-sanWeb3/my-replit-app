@@ -19,28 +19,16 @@ export default function Inventory() {
     queryKey: ["/api/food-items"],
   });
 
-  console.log('📊 Inventory Debug:', {
-    userId: currentUserId,
+  // Debug logging
+  console.log('🏪 Inventory - Debug State:', {
+    currentUserId,
     categoriesCount: categories.length,
     itemsCount: allFoodItems.length,
     categoriesLoading,
     itemsLoading,
     categoriesError,
-    itemsError,
-    categories: categories.map(cat => ({ id: cat.id, name: cat.name, userId: cat.userId })),
-    items: allFoodItems.map(item => ({ id: item.id, name: item.name, categoryId: item.categoryId, userId: item.userId }))
+    itemsError
   });
-
-  // Check for user ID consistency
-  React.useEffect(() => {
-    const hasUserIdMismatch = categories.some(cat => cat.userId && cat.userId !== currentUserId) ||
-                              allFoodItems.some(item => item.userId && item.userId !== currentUserId);
-    
-    if (hasUserIdMismatch) {
-      console.warn('🔄 User ID mismatch detected, clearing cache...');
-      queryClient.clear();
-    }
-  }, [categories, allFoodItems, currentUserId]);
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
@@ -63,7 +51,7 @@ export default function Inventory() {
           <div className="space-y-6">
             {categories.map((category: any) => {
               const categoryItems = allFoodItems.filter((item: any) => item.categoryId === category.id);
-              
+
               return (
                 <Card key={category.id}>
                   <CardHeader>
