@@ -1,16 +1,16 @@
+
+import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Package } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import FoodItemCard from "@/components/FoodItemCard";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import BottomNavigation from "@/components/BottomNavigation";
+import FoodItemCard from "@/components/FoodItemCard";
 import { getCurrentUserId } from "@/lib/queryClient";
 
 export default function Inventory() {
-  // Debug user ID
   const currentUserId = getCurrentUserId();
-  console.log('🏷️ Inventory page - Current User ID:', currentUserId);
 
-  // Fetch categories and food items
+  // API Queries
   const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["/api/categories"],
   });
@@ -20,76 +20,89 @@ export default function Inventory() {
   });
 
   // Debug logging
-  console.log('🏪 Inventory - Debug State:', {
-    currentUserId,
-    categoriesCount: categories.length,
-    itemsCount: allFoodItems.length,
-    categoriesLoading,
-    itemsLoading,
-    categoriesError,
-    itemsError
+  React.useEffect(() => {
+    console.log('📦 Inventory Debug Info:', {
+      currentUserId,
+      categoriesCount: categories.length,
+      itemsCount: allFoodItems.length,
+      categoriesLoading,
+      itemsLoading,
+      categoriesError,
+      itemsError,
+      categories: categories.map(cat => ({ id: cat.id, name: cat.name, userId: cat.userId })),
+      items: allFoodItems.map(item => ({ id: item.id, name: item.name, categoryId: item.categoryId, userId: item.userId }))
+    });
   });
+
+  const isLoading = categoriesLoading || itemsLoading;
+  const hasError = categoriesError || itemsError;
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-100 px-4 py-3 sticky top-0 z-10">
-        <div className="flex items-center space-x-3">
-          <Package className="w-6 h-6 text-primary" />
-          <h1 className="text-xl font-semibold text-gray-800">在庫一覧</h1>
+      <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white p-6 rounded-b-3xl">
+        <h1 className="text-2xl font-bold mb-2">📦 在庫一覧</h1>
+        <div className="flex gap-2">
+          <Badge variant="secondary" className="bg-white/20 text-white">
+            {allFoodItems.length} アイテム
+          </Badge>
+          <Badge variant="secondary" className="bg-white/20 text-white">
+            {categories.length} カテゴリ
+          </Badge>
         </div>
-      </header>
+      </div>
 
       {/* Content */}
-      <main className="px-4 py-6 pb-24">
-        {categories.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">カテゴリがまだ設定されていません</p>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {categories.map((category: any) => {
-              const categoryItems = allFoodItems.filter((item: any) => item.categoryId === category.id);
-
-              return (
-                <Card key={category.id}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-3">
-                      <div 
-                        className="w-8 h-8 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${category.color}20` }}
-                      >
-                        <i className={`${category.icon} text-sm`} style={{ color: category.color }}></i>
-                      </div>
-                      <span>{category.name}</span>
-                      <span className="text-sm text-gray-500 font-normal">
-                        ({categoryItems.length}点)
-                      </span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {categoryItems.length > 0 ? (
-                      <div className="grid grid-cols-1 gap-3">
-                        {categoryItems.map((item: any) => (
-                          <FoodItemCard key={item.id} item={item} showFullInfo />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 text-center py-4">
-                        この区分には食材がありません
-                      </p>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+      <div className="p-6 pb-20">
+        {isLoading && (
+          <div className="text-center text-gray-500 py-8">
+            データを読み込んでいます...
           </div>
         )}
-      </main>
 
-      {/* Bottom Navigation */}
-      <BottomNavigation currentPage="inventory" />
+        {hasError && (
+          <div className="text-center text-red-500 py-8">
+            データの読み込みに失敗しました
+          </div>
+        )}
+
+        {!isLoading && !hasError && allFoodItems.length === 0 && (
+          <Card className="p-8 text-center">
+            <p className="text-gray-500 mb-4">まだ食材が登録されていません</p>
+            <p className="text-sm text-gray-400">ホーム画面からレシートを読み取って食材を追加してみましょう</p>
+          </Card>
+        )}
+
+        {!isLoading && !hasError && categories.map((category) => {
+          const categoryItems = allFoodItems.filter(item => item.categoryId === category.id);
+          
+          if (categoryItems.length === 0) return null;
+
+          return (
+            <div key={category.id} className="mb-6">
+              <div className="flex items-center mb-3">
+                <i className={`${category.icon} text-lg mr-2`} style={{ color: category.color }}></i>
+                <h2 className="text-lg font-semibold">{category.name}</h2>
+                <Badge variant="outline" className="ml-2">
+                  {categoryItems.length}
+                </Badge>
+              </div>
+              
+              <div className="grid gap-3">
+                {categoryItems.map((item) => (
+                  <FoodItemCard
+                    key={item.id}
+                    item={item}
+                    category={category}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <BottomNavigation />
     </div>
   );
 }
