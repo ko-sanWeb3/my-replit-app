@@ -34,10 +34,8 @@ function getCurrentUserId(): string {
 // Initialize user ID immediately when module loads
 const CURRENT_USER_ID = getCurrentUserId();
 
-// Export the current user ID for consistent usage
-export function getCurrentUserId(): string {
-  return CURRENT_USER_ID;
-}
+// Export the current user ID for consistent usage  
+export { getCurrentUserId };
 
 // Reset user ID (for debugging)
 export function resetUserId(): string {
