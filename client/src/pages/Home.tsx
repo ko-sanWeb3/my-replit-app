@@ -117,15 +117,16 @@ export default function Home() {
       </header>
 
       {/* Quick Stats */}
+      {/*
       <section className="px-4 py-6 bg-gradient-to-r from-primary/5 to-secondary/5">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-800">今日の栄養バランス</h2>
           <span className="text-sm text-gray-500">{currentDate}</span>
         </div>
-        
+
         <NutritionRings nutritionData={nutritionSummary.percentages} />
 
-        {/* Expiry Alert */}
+        {/* Expiry Alert *}
         {expiringItems.length > 0 && (
           <div className="bg-warning/10 border border-warning/20 rounded-lg p-3 flex items-center space-x-3 mt-6">
             <div className="w-8 h-8 bg-warning/20 rounded-full flex items-center justify-center">
@@ -143,6 +144,7 @@ export default function Home() {
           </div>
         )}
       </section>
+      */}
 
       {/* Upload Options */}
       <section className="px-4 py-4 bg-white border-b border-gray-100 space-y-3">
@@ -153,7 +155,7 @@ export default function Home() {
           <Camera className="w-5 h-5" />
           <span className="font-medium">レシートをスキャン</span>
         </Button>
-        
+
 
       </section>
 
@@ -171,7 +173,7 @@ export default function Home() {
           {categories.map((category: any) => {
             const categoryItems = getItemsByCategory(category.id);
             const totalItems = allFoodItems.filter((item: any) => item.categoryId === category.id).length;
-            
+
             return (
               <Card key={category.id} className="overflow-hidden">
                 <div 
@@ -194,7 +196,7 @@ export default function Home() {
                     <i className="fas fa-chevron-down text-sm"></i>
                   </button>
                 </div>
-                
+
                 <CardContent className="p-4">
                   {categoryItems.length > 0 ? (
                     <>
@@ -233,7 +235,7 @@ export default function Home() {
               追加
             </Button>
           </div>
-          
+
           <Card>
             <CardContent className="p-4">
               {shoppingItems.length > 0 ? (

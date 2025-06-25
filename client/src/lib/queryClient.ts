@@ -4,8 +4,72 @@ import { QueryClient } from "@tanstack/react-query";
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 60 * 5, // 5 minutes
-      retry: 1,
+      queryFn: async ({ queryKey, signal }) => {
+        // Get or generate user ID
+        let userId = localStorage.getItem('userId');
+        if (!userId || userId === 'undefined') {
+          userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          localStorage.setItem('userId', userId);
+          console.log('Generated new user ID:', userId);
+        }
+
+        const url = queryKey[0] as string;
+        console.log(`Fetching ${url} with user ID:`, userId);
+
+        const response = await fetch(url, { 
+          signal,
+          credentials: "include",
+          headers: {
+            'X-User-ID': userId,
+          },
+        });
+        if (!response.ok) {
+          if (response.status >= 500) {
+            throw new Error(`Server error: ${response.status}`);
+          }
+          throw new Error(`Request failed: ${response.status}`);
+        }
+        return response.json();
+      },
+      retry: (failureCount, error) => {
+        // Don't retry on 4xx errors, but retry on 5xx
+        if (error instanceof Error && error.message.includes('Request failed: 4')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+    },
+    mutations: {
+      mutationFn: async ({ url, method = 'POST', data }) => {
+        // Get or generate user ID
+        let userId = localStorage.getItem('userId');
+        if (!userId || userId === 'undefined') {
+          userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          localStorage.setItem('userId', userId);
+          console.log('Generated new user ID for mutation:', userId);
+        }
+
+        console.log(`${method} ${url} with user ID:`, userId);
+
+        const response = await fetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': userId,
+          },
+          credentials: "include",
+          body: data ? JSON.stringify(data) : undefined,
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`${method} ${url} failed: ${response.status} ${errorText}`);
+        }
+
+        return response.json();
+      },
     },
   },
 });

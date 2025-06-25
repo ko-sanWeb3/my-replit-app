@@ -274,6 +274,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserIdFromRequest(req);
       await ensureUserExists(userId);
       const { categoryId } = req.query;
+      
+      console.log("Fetching food items for user:", userId);
 
       let items;
       if (categoryId) {
@@ -281,7 +283,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         items = await storage.getAllFoodItems(userId);
       }
-
+      
+      console.log("Found food items:", items.length);
       res.json(items);
     } catch (error) {
       console.error("Error fetching food items:", error);
