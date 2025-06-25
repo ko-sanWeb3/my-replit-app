@@ -1,24 +1,38 @@
 import { QueryClient } from "@tanstack/react-query";
 
 // User ID management
-export function getUserId(): string {
-  // Try to get existing user ID from localStorage
-  let userId = localStorage.getItem('user-id');
+const STORAGE_KEY = 'guest_user_id';
+const SESSION_KEY = 'guest_session_active';
 
-  if (!userId || userId === 'undefined' || userId === 'null') {
-    // Generate new user ID and save it
-    userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('user-id', userId);
+function getCurrentUserId(): string {
+  // First check session storage for temporary persistence
+  let userId = sessionStorage.getItem(STORAGE_KEY);
+
+  if (!userId) {
+    // Then check localStorage for permanent persistence
+    userId = localStorage.getItem(STORAGE_KEY);
+  }
+
+  if (!userId) {
+    // Generate new user ID with more entropy
+    userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+    // Store in both storages
+    localStorage.setItem(STORAGE_KEY, userId);
+    sessionStorage.setItem(STORAGE_KEY, userId);
+    sessionStorage.setItem(SESSION_KEY, 'true');
     console.log('Generated new user ID:', userId);
   } else {
     console.log('Using existing user ID:', userId);
+    // Ensure it's in both storages
+    localStorage.setItem(STORAGE_KEY, userId);
+    sessionStorage.setItem(STORAGE_KEY, userId);
   }
 
   return userId;
 }
 
 // Initialize user ID immediately when module loads
-const CURRENT_USER_ID = getUserId();
+const CURRENT_USER_ID = getCurrentUserId();
 
 // Export the current user ID for consistent usage
 export function getCurrentUserId(): string {

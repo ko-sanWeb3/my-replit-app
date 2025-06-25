@@ -321,12 +321,7 @@ export default function ExtractedItemsModal({
     </div>
   );
 }
-```
 
-```text
-The requested changes are to replace import { getUserId } from "@/lib/queryClient"; with import { getCurrentUserId } from "@/lib/queryClient";.
-Since there is no such import statement in the given code, I will add the function `getCurrentUserId` to the file.
-```
 
 ```replit_final_file
 import { useState, useEffect } from "react";
