@@ -23,18 +23,16 @@ export default function Home() {
   // Initialize categories mutation
   const initCategoriesMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", "/api/categories/init");
-      return response.json();
+      console.log('Initializing categories...');
+      return await apiRequest("POST", "/api/categories/init");
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log('Categories initialized successfully:', data);
       queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
     },
     onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to initialize categories",
-        variant: "destructive",
-      });
+      console.error('Failed to initialize categories:', error);
     },
   });
 

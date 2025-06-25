@@ -175,12 +175,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   function getUserIdFromRequest(req: any): string {
     // Check for user ID in custom header (sent from frontend)
     const userIdFromHeader = req.headers['x-user-id'];
-    if (userIdFromHeader && userIdFromHeader !== 'undefined') {
+    if (userIdFromHeader && userIdFromHeader !== 'undefined' && userIdFromHeader !== 'null') {
+      console.log('Using existing user ID from header:', userIdFromHeader);
       return userIdFromHeader;
     }
 
     // Fallback to generating new ID (will be saved by frontend)
-    return generateUniqueUserId();
+    const newUserId = generateUniqueUserId();
+    console.log('Generated new user ID:', newUserId);
+    return newUserId;
   }
 
   // Function to ensure user exists
@@ -236,18 +239,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/categories', async (req: any, res) => {
     try {
       const userId = getUserIdFromRequest(req);
+      console.log("Fetching categories for user:", userId);
       await ensureUserExists(userId);
 
       let categories = await storage.getUserCategories(userId);
+      console.log("Found categories:", categories?.length || 0);
 
       // If no categories exist, initialize default ones
       if (!categories || categories.length === 0) {
         console.log("No categories found, initializing defaults for user:", userId);
-        await storage.initializeDefaultCategories(userId);
-        categories = await storage.getUserCategories(userId);
+        try {
+          await storage.initializeDefaultCategories(userId);
+          categories = await storage.getUserCategories(userId);
+          console.log("Categories after initialization:", categories?.length || 0);
+        } catch (initError) {
+          console.error("Error initializing categories:", initError);
+          // Return empty array if initialization fails
+          categories = [];
+        }
       }
 
-      console.log("Categories response:", categories);
+      console.log("Returning categories:", categories);
       res.json(categories || []);
     } catch (error) {
       console.error("Error fetching categories:", error);

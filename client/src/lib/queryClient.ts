@@ -1,122 +1,80 @@
 import { QueryClient } from "@tanstack/react-query";
 
-// Create and export the query client
+// Generate or get user ID with better persistence
+function getUserId(): string {
+  try {
+    let userId = localStorage.getItem('user-id');
+    if (!userId || userId === 'undefined' || userId === 'null') {
+      userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      localStorage.setItem('user-id', userId);
+      console.log('Generated new user ID:', userId);
+    } else {
+      console.log('Using existing user ID:', userId);
+    }
+    return userId;
+  } catch (error) {
+    console.error('Error accessing localStorage:', error);
+    return `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+}
+
+// Reset user ID (for debugging)
+export function resetUserId(): string {
+  const userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  localStorage.setItem('user-id', userId);
+  console.log('Reset to new user ID:', userId);
+  return userId;
+}
+
+// API request helper with user ID and better error handling
+export async function apiRequest(method: string, endpoint: string, data?: any) {
+  const userId = getUserId();
+  console.log(`Making ${method} request to ${endpoint} with user ID:`, userId);
+
+  try {
+    const response = await fetch(endpoint, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-User-ID': userId,
+      },
+      body: data ? JSON.stringify(data) : undefined,
+    });
+
+    if (!response.ok) {
+      console.error(`API Error: ${method} ${endpoint} - ${response.status} ${response.statusText}`);
+      throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    console.log(`API Success: ${method} ${endpoint}`, result);
+    return result;
+  } catch (error) {
+    console.error(`API Request Failed: ${method} ${endpoint}`, error);
+    throw error;
+  }
+}
+
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: async ({ queryKey, signal }) => {
-        // Get or generate user ID
-        let userId = localStorage.getItem('userId');
-        if (!userId || userId === 'undefined') {
-          userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          localStorage.setItem('userId', userId);
-          console.log('Generated new user ID:', userId);
-        }
-
-        const url = queryKey[0] as string;
-        console.log(`Fetching ${url} with user ID:`, userId);
-
-        const response = await fetch(url, { 
-          signal,
-          credentials: "include",
-          headers: {
-            'X-User-ID': userId,
-          },
-        });
-        if (!response.ok) {
-          if (response.status >= 500) {
-            throw new Error(`Server error: ${response.status}`);
-          }
-          throw new Error(`Request failed: ${response.status}`);
-        }
-        return response.json();
+      queryFn: async ({ queryKey }) => {
+        const endpoint = queryKey[0] as string;
+        return apiRequest("GET", endpoint);
       },
+      staleTime: 1000 * 60 * 5, // 5 minutes
       retry: (failureCount, error) => {
-        // Don't retry on 4xx errors, but retry on 5xx
-        if (error instanceof Error && error.message.includes('Request failed: 4')) {
-          return false;
-        }
+        console.error(`Query failed (attempt ${failureCount}):`, error);
         return failureCount < 3;
       },
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes
+      onError: (error) => {
+        console.error('Query error:', error);
+      },
     },
     mutations: {
-      mutationFn: async ({ url, method = 'POST', data }) => {
-        // Get or generate user ID
-        let userId = localStorage.getItem('userId');
-        if (!userId || userId === 'undefined') {
-          userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-          localStorage.setItem('userId', userId);
-          console.log('Generated new user ID for mutation:', userId);
-        }
-
-        console.log(`${method} ${url} with user ID:`, userId);
-
-        const response = await fetch(url, {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-User-ID': userId,
-          },
-          credentials: "include",
-          body: data ? JSON.stringify(data) : undefined,
-        });
-
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`${method} ${url} failed: ${response.status} ${errorText}`);
-        }
-
-        return response.json();
+      onError: (error) => {
+        console.error('Mutation error:', error);
       },
     },
   },
 });
-
-// User ID management
-export function getUserId(): string {
-  let userId = localStorage.getItem('userId');
-  if (!userId) {
-    userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('userId', userId);
-  }
-  return userId;
-}
-
-// Custom fetch wrapper that adds authentication and user ID
-export async function apiRequest(
-  method: "GET" | "POST" | "PUT" | "DELETE",
-  path: string,
-  body?: any,
-) {
-  const userId = getUserId();
-
-  const options: RequestInit = {
-    method,
-    headers: {
-      "Content-Type": "application/json",
-      "X-User-ID": userId,
-    },
-  };
-
-  if (body) {
-    options.body = JSON.stringify(body);
-  }
-
-  const response = await fetch(path, options);
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    let errorMessage;
-    try {
-      const errorJson = JSON.parse(errorText);
-      errorMessage = errorJson.message || errorJson.error || "Unknown error";
-    } catch {
-      errorMessage = errorText || `HTTP ${response.status}`;
-    }
-    throw new Error(errorMessage);
-  }
-
-  return response;
-}
