@@ -361,27 +361,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Batch create request:", { userId, itemsCount: itemsData.length, items: itemsData });
 
       const results = [];
+      const errors = [];
+      
       for (const item of itemsData) {
         try {
+          // Validate required fields
+          if (!item.name || !item.categoryId) {
+            errors.push(`Item missing required fields: ${JSON.stringify(item)}`);
+            continue;
+          }
+
           // Validate and prepare item data
           const itemData = insertFoodItemSchema.parse({
-            ...item,
+            name: item.name.trim(),
+            categoryId: parseInt(item.categoryId.toString()),
             userId,
             quantity: parseInt(item.quantity?.toString() || "1") || 1,
             unit: item.unit || "個",
+            expiryDate: item.expiryDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           });
 
           console.log("Creating food item:", itemData);
           const foodItem = await storage.createFoodItem(itemData);
           results.push(foodItem);
+          console.log("Successfully created food item:", foodItem.id);
         } catch (itemError) {
-          console.error("Error creating individual food item:", itemError, "Item data:", item);
-          // Continue with other items instead of failing the entire batch
+          console.error("Error creating individual food item:", itemError);
+          console.error("Item data:", item);
+          errors.push(`Failed to create item ${item.name}: ${itemError.message}`);
         }
       }
 
-      console.log("Batch creation completed:", { successCount: results.length, totalCount: itemsData.length });
-      res.json({ success: true, items: results });
+      console.log("Batch creation completed:", { 
+        successCount: results.length, 
+        totalCount: itemsData.length, 
+        errors: errors.length 
+      });
+
+      if (results.length === 0) {
+        return res.status(400).json({ 
+          message: "No items could be created", 
+          errors,
+          success: false 
+        });
+      }
+
+      res.json({ 
+        success: true, 
+        items: results, 
+        totalCreated: results.length,
+        errors: errors.length > 0 ? errors : undefined
+      });
     } catch (error) {
       console.error("Error creating batch food items:", error);
       res.status(500).json({ message: "Failed to create food items", error: error.message });

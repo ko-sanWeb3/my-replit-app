@@ -8,6 +8,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 
+// Helper function to get user ID
+function getUserId(): string {
+  let userId = localStorage.getItem('userId');
+  if (!userId) {
+    userId = `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    localStorage.setItem('userId', userId);
+  }
+  return userId;
+}
+
 interface ExtractedItem {
   name: string;
   category: string;
@@ -67,11 +77,15 @@ export default function ExtractedItemsModal({
       return response.json();
     },
     onSuccess: (data) => {
+      console.log("Save success:", data);
       toast({
         title: "成功",
-        description: `${data.items?.length || 0}個の食材を追加しました`,
+        description: `${data.totalCreated || data.items?.length || 0}個の食材を追加しました`,
       });
+      // Invalidate multiple queries to ensure UI updates
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/categories"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/nutrition"] });
       onClose();
     },
     onError: (error) => {
@@ -105,6 +119,7 @@ export default function ExtractedItemsModal({
 
           switch (category.name) {
             case "冷蔵室": return 7;   // 冷蔵室
+            case "冷蔵": return 7;     // 冷蔵（別名）
             case "野菜室": return 5;   // 野菜室 
             case "冷凍庫": return 30;  // 冷凍庫
             case "チルド": return 3;   // チルド
