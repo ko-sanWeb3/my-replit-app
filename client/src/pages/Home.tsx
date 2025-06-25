@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import BottomNavigation from "@/components/BottomNavigation";
-import NutritionRings from "@/components/NutritionRings";
 import ReceiptUploadModal from "@/components/ReceiptUploadModal";
 import { queryClient, getCurrentUserId, apiRequest } from "@/lib/queryClient";
 import { PlusCircle, Package, ShoppingCart, TrendingUp } from "lucide-react";
@@ -24,9 +23,7 @@ export default function Home() {
     queryKey: ["/api/shopping-items"],
   });
 
-  const { data: nutritionData } = useQuery({
-    queryKey: ["/api/nutrition/summary"],
-  });
+  
 
   // Initialize categories mutation
   const initCategoriesMutation = useMutation({
@@ -119,29 +116,17 @@ export default function Home() {
         <Card className="shadow-lg border-0">
           <CardContent className="p-4 text-center">
             <div className="w-8 h-8 bg-purple-500 rounded-full mx-auto mb-2 flex items-center justify-center">
-              <span className="text-white text-xs font-bold">栄</span>
+              <span className="text-white text-xs font-bold">📅</span>
             </div>
             <p className="text-2xl font-bold text-gray-800">
-              {nutritionData?.totals?.calories || 0}
+              {new Date().getDate()}
             </p>
-            <p className="text-sm text-gray-600">カロリー</p>
+            <p className="text-sm text-gray-600">今日</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Nutrition Section */}
-      {nutritionData && (
-        <div className="px-6 mb-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">今日の栄養バランス</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NutritionRings data={nutritionData} />
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      
 
       {/* Loading & Error States */}
       {isLoading && (
@@ -158,8 +143,8 @@ export default function Home() {
 
       {/* Receipt Upload Modal */}
       <ReceiptUploadModal 
-        open={isReceiptModalOpen} 
-        onOpenChange={setIsReceiptModalOpen} 
+        isOpen={isReceiptModalOpen} 
+        onClose={() => setIsReceiptModalOpen(false)} 
       />
 
       {/* Bottom Navigation */}

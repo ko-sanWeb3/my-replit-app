@@ -1,11 +1,10 @@
-
 import { QueryClient } from "@tanstack/react-query";
 
 // 安定したユーザーID管理
 export function getCurrentUserId(): string {
   const storageKey = 'fridge-keeper-user-id';
   let userId = localStorage.getItem(storageKey);
-  
+
   if (!userId) {
     userId = `user_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     localStorage.setItem(storageKey, userId);
@@ -20,7 +19,7 @@ export function getCurrentUserId(): string {
 export async function apiRequest(method: string, endpoint: string, data?: any) {
   const userId = getCurrentUserId();
   console.log(`🌐 ${method} ${endpoint} [User: ${userId}]`);
-  
+
   const response = await fetch(endpoint, {
     method,
     headers: {
@@ -57,7 +56,7 @@ export const queryClient = new QueryClient({
       refetchOnMount: true,
     },
     mutations: {
-      retry: 1,
+      retry: 2,
     },
   },
 });
