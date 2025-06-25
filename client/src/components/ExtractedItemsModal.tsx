@@ -1,16 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
-import { Check, X, Plus, Edit2 } from "lucide-react";
+import { X, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { getFoodIcon, getFoodCategory } from "@/lib/foodIcons";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ExtractedItem {
   name: string;
@@ -26,81 +24,35 @@ interface ExtractedItemsModalProps {
   categories: any[];
 }
 
-export default function ExtractedItemsModal({ 
-  isOpen, 
-  onClose, 
-  extractedItems, 
-  categories 
-}: ExtractedItemsModalProps) {
-  const [selectedItems, setSelectedItems] = useState<Set<number>>(new Set());
-  const [itemCategories, setItemCategories] = useState<{ [key: number]: number }>({});
-  const [editingItems, setEditingItems] = useState<{ [key: number]: string }>({});
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+export default function ExtractedItemsModal({ isOpen, onClose, extractedItems, categories }: ExtractedItemsModalProps) {
+  const [selectedItems, setSelectedItems] = useState<{[key: number]: {
+    categoryId: number;
+    quantity: number;
+    unit: string;
+    expiryDate: string;
+  }}>({});
   const { toast } = useToast();
 
-  // 野菜の選択肢
-  const vegetableOptions = [
-    "トマト", "小松菜", "キャベツ", "にんじん", "玉ねぎ", 
-    "ピーマン", "きゅうり", "大根", "レタス", "その他の野菜"
-  ];
-
-  // Find category ID by name
-  const getCategoryId = (categoryName: string) => {
-    const categoryMap: { [key: string]: string } = {
-      "冷蔵": "冷蔵",
-      "冷凍": "冷凍庫", 
-      "野菜": "野菜室",
-      "常温": "冷蔵", // Default to 冷蔵 for 常温
-    };
-    
-    const mappedName = categoryMap[categoryName] || "冷蔵";
-    const category = categories.find(cat => cat.name === mappedName);
-    return category?.id || categories[0]?.id;
-  };
-
-  // Initialize item categories and names
-  useEffect(() => {
-    if (extractedItems.length > 0 && categories.length > 0) {
-      const initialCategories: { [key: number]: number } = {};
-      const initialNames: { [key: number]: string } = {};
-      extractedItems.forEach((item, index) => {
-        const categoryId = getCategoryId(item.category);
-        initialCategories[index] = categoryId;
-        initialNames[index] = item.name;
-        console.log(`Item ${index}: ${item.name} -> Category ID: ${categoryId}`);
-      });
-      setItemCategories(initialCategories);
-      setEditingItems(initialNames);
-    }
-  }, [extractedItems, categories]);
-
-  // Check if item name suggests it's a generic/unknown item
-  const isGenericItem = (name: string) => {
-    const genericTerms = ["直売", "産直", "野菜", "生鮮", "その他"];
-    return genericTerms.some(term => name.includes(term));
-  };
-
-  const addItemsMutation = useMutation({
+  const addFoodItemsMutation = useMutation({
     mutationFn: async (items: any[]) => {
-      const results = [];
-      for (const item of items) {
-        try {
-          console.log("Sending item to server:", item);
-          const result = await apiRequest("POST", "/api/food-items", item);
-          results.push(result);
-        } catch (error) {
-          console.error("Error adding item:", item, error);
-          throw error;
-        }
+      const response = await fetch("/api/food-items/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ items }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to add food items");
       }
-      return results;
+
+      return response.json();
     },
     onSuccess: () => {
       toast({
         title: "Success",
-        description: `${selectedItems.size}個の食材を追加しました`,
+        description: "食材を冷蔵庫に追加しました",
       });
-      
       queryClient.invalidateQueries({ queryKey: ["/api/food-items"] });
       onClose();
     },
@@ -113,116 +65,72 @@ export default function ExtractedItemsModal({
     },
   });
 
-  const handleItemToggle = (index: number) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(index)) {
-      newSelected.delete(index);
-    } else {
-      newSelected.add(index);
-    }
-    setSelectedItems(newSelected);
-  };
-
-  const handleCategoryChange = (index: number, categoryId: string) => {
-    setItemCategories(prev => ({
+  const handleItemChange = (index: number, field: string, value: any) => {
+    setSelectedItems(prev => ({
       ...prev,
-      [index]: parseInt(categoryId)
+      [index]: {
+        ...prev[index],
+        [field]: value
+      }
     }));
   };
 
-  const handleItemNameChange = (index: number, newName: string) => {
-    setEditingItems(prev => ({
-      ...prev,
-      [index]: newName
-    }));
-  };
+  const handleAddItems = () => {
+    const itemsToAdd = extractedItems
+      .map((item, index) => {
+        const selection = selectedItems[index];
+        if (!selection?.categoryId) return null;
 
-  const getExpiryDays = (itemName: string, categoryId: number): number => {
-    const name = itemName.toLowerCase();
-    
-    // 肉類 (categoryId 4 = チルド)
-    if (categoryId === 4 || name.includes('肉') || name.includes('ミンチ')) {
-      return 3; // 3日
-    }
-    
-    // 野菜類
-    if (categoryId === 1) {
-      if (name.includes('レタス') || name.includes('小松菜') || name.includes('キャベツ')) {
-        return 5; // 葉物野菜 5日
-      }
-      if (name.includes('たまねぎ') || name.includes('にんにく') || name.includes('じゃがいも')) {
-        return 30; // 根菜類 30日
-      }
-      if (name.includes('トマト') || name.includes('きゅうり')) {
-        return 7; // 一般野菜 7日
-      }
-      if (name.includes('しいたけ') || name.includes('きのこ')) {
-        return 4; // きのこ類 4日
-      }
-      return 7; // その他野菜
-    }
-    
-    // 飲み物 (categoryId 2)
-    if (categoryId === 2) {
-      if (name.includes('綾鷹') || name.includes('お茶') || name.includes('ペット')) {
-        return 60; // ペットボトル飲料 60日
-      }
-      if (name.includes('牛乳') || name.includes('ミルク')) {
-        return 5; // 牛乳 5日
-      }
-      return 30; // その他飲み物
-    }
-    
-    // 果物
-    if (name.includes('レモン') || name.includes('りんご')) {
-      return 14; // 柑橘類・りんご 14日
-    }
-    if (name.includes('キウイ') || name.includes('バナナ')) {
-      return 7; // その他果物 7日
-    }
-    
-    return 7; // デフォルト
-  };
+        // Calculate expiry date based on category
+        const expiryDate = selection.expiryDate || getDefaultExpiryDate(selection.categoryId);
 
-  const handleAddSelected = () => {
-    const itemsToAdd = Array.from(selectedItems).map(index => {
-      const item = extractedItems[index];
-      const itemName = editingItems[index] || item.name;
-      const categoryId = itemCategories[index];
-      
-      console.log("Creating item:", { 
-        name: itemName, 
-        categoryId, 
-        index, 
-        originalItem: item,
-        editingItems: editingItems[index],
-        categories: itemCategories[index]
+        return {
+          name: item.name,
+          categoryId: selection.categoryId,
+          quantity: selection.quantity || item.quantity || 1,
+          unit: selection.unit || item.unit || "個",
+          expiryDate,
+        };
+      })
+      .filter(Boolean);
+
+    if (itemsToAdd.length === 0) {
+      toast({
+        title: "Warning",
+        description: "追加する食材を選択してください",
+        variant: "destructive",
       });
-      
-      // Ensure we have valid data
-      if (!itemName || !categoryId) {
-        console.error("Invalid item data:", { name: itemName, categoryId });
-        return null;
-      }
-      
-      const expiryDays = getExpiryDays(itemName, Number(categoryId));
-      const expiryDate = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      
-      return {
-        name: itemName,
-        categoryId: Number(categoryId),
-        quantity: Number(item.quantity) || 1,
-        unit: item.unit || "個",
-        expiryDate: expiryDate,
-        protein: 0,
-        carbs: 0,
-        fats: 0,
-        calories: 0,
-      };
-    }).filter(item => item !== null);
+      return;
+    }
 
-    console.log("Items to add:", itemsToAdd);
-    addItemsMutation.mutate(itemsToAdd);
+    addFoodItemsMutation.mutate(itemsToAdd);
+  };
+
+  const getDefaultExpiryDate = (categoryId: number): string => {
+    const today = new Date();
+    let daysToAdd = 7; // Default 7 days
+
+    // Set different expiry periods based on category
+    switch (categoryId) {
+      case 1: // 野菜
+        daysToAdd = 5;
+        break;
+      case 2: // 冷凍
+        daysToAdd = 30;
+        break;
+      case 3: // 常温
+        daysToAdd = 14;
+        break;
+      case 4: // チルド
+        daysToAdd = 3;
+        break;
+      default:
+        daysToAdd = 7;
+    }
+
+    const expiryDate = new Date(today);
+    expiryDate.setDate(today.getDate() + daysToAdd);
+    return expiryDate.toISOString().split('T')[0];
   };
 
   if (!isOpen) return null;
@@ -238,114 +146,102 @@ export default function ExtractedItemsModal({
             </Button>
           </CardTitle>
         </CardHeader>
-        
-        <CardContent>
+
+        <CardContent className="space-y-4">
           {extractedItems.length === 0 ? (
-            <p className="text-center text-gray-500 py-8">
-              食材が検出されませんでした
-            </p>
+            <p className="text-center text-gray-500 py-8">食材が検出されませんでした</p>
           ) : (
             <>
-              <div className="space-y-4 mb-6">
-                {extractedItems.map((item, index) => (
-                  <Card key={index} className={`border-2 transition-colors ${
-                    selectedItems.has(index) ? 'border-primary bg-primary/5' : 'border-gray-200'
-                  }`}>
-                    <CardContent className="p-4">
-                      <div className="flex items-start space-x-3">
-                        <Checkbox
-                          checked={selectedItems.has(index)}
-                          onCheckedChange={() => handleItemToggle(index)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <span className="text-xl">{getFoodIcon(editingItems[index] || item.name)}</span>
-                            {isGenericItem(item.name) ? (
-                              <div className="flex-1">
-                                <Select 
-                                  value={editingItems[index] || item.name} 
-                                  onValueChange={(value) => handleItemNameChange(index, value)}
-                                >
-                                  <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="野菜を選択してください" />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {vegetableOptions.map((vegetable) => (
-                                      <SelectItem key={vegetable} value={vegetable}>
-                                        <span className="flex items-center space-x-2">
-                                          <span>{getFoodIcon(vegetable)}</span>
-                                          <span>{vegetable}</span>
-                                        </span>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  元の名前: {item.name}
-                                </p>
-                              </div>
-                            ) : (
-                              <h3 className="font-medium">{editingItems[index] || item.name}</h3>
-                            )}
-                            {item.quantity && (
-                              <Badge variant="secondary" className="text-xs">
-                                {item.quantity}{item.unit || "個"}
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          <Select 
-                            value={itemCategories[index]?.toString()} 
-                            onValueChange={(value) => handleCategoryChange(index, value)}
-                          >
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="保存場所を選択" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {categories.map((category) => (
-                                <SelectItem key={category.id} value={category.id.toString()}>
-                                  <div className="flex items-center space-x-2">
-                                    <div 
-                                      className="w-3 h-3 rounded"
-                                      style={{ backgroundColor: category.color }}
-                                    />
-                                    <span>{category.name}</span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+              {extractedItems.map((item, index) => (
+                <Card key={index} className="p-4">
+                  <div className="space-y-3">
+                    <h3 className="font-medium">{item.name}</h3>
 
-              <div className="flex space-x-3">
-                <Button 
-                  variant="outline" 
-                  onClick={onClose}
-                  className="flex-1"
-                >
+                    {/* Category Selection */}
+                    <div>
+                      <Label htmlFor={`category-${index}`}>保存先</Label>
+                      <Select 
+                        onValueChange={(value) => handleItemChange(index, 'categoryId', parseInt(value))}
+                        value={selectedItems[index]?.categoryId?.toString() || ""}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="保存先を選択してください" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id.toString()}>
+                              <div className="flex items-center space-x-2">
+                                <div 
+                                  className="w-4 h-4 rounded-sm flex items-center justify-center"
+                                  style={{ backgroundColor: `${category.color}20` }}
+                                >
+                                  <i className={`${category.icon} text-xs`} style={{ color: category.color }}></i>
+                                </div>
+                                <span>{category.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Quantity and Unit */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label htmlFor={`quantity-${index}`}>数量</Label>
+                        <Input
+                          id={`quantity-${index}`}
+                          type="number"
+                          min="1"
+                          placeholder="1"
+                          value={selectedItems[index]?.quantity || item.quantity || ""}
+                          onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor={`unit-${index}`}>単位</Label>
+                        <Input
+                          id={`unit-${index}`}
+                          placeholder="個"
+                          value={selectedItems[index]?.unit || item.unit || "個"}
+                          onChange={(e) => handleItemChange(index, 'unit', e.target.value)}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Expiry Date */}
+                    <div>
+                      <Label htmlFor={`expiry-${index}`}>賞味期限</Label>
+                      <Input
+                        id={`expiry-${index}`}
+                        type="date"
+                        value={selectedItems[index]?.expiryDate || ""}
+                        onChange={(e) => handleItemChange(index, 'expiryDate', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </Card>
+              ))}
+
+              <div className="flex space-x-3 pt-4">
+                <Button variant="outline" onClick={onClose} className="flex-1">
                   キャンセル
                 </Button>
                 <Button 
-                  onClick={handleAddSelected}
-                  disabled={selectedItems.size === 0 || addItemsMutation.isPending}
+                  onClick={handleAddItems}
+                  disabled={addFoodItemsMutation.isPending}
                   className="flex-1"
                 >
-                  {addItemsMutation.isPending ? (
+                  {addFoodItemsMutation.isPending ? (
                     <div className="flex items-center space-x-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                       <span>追加中...</span>
                     </div>
                   ) : (
-                    <div className="flex items-center space-x-2">
-                      <Plus className="w-4 h-4" />
-                      <span>選択した{selectedItems.size}個を追加</span>
-                    </div>
+                    <>
+                      <Plus className="w-4 h-4 mr-2" />
+                      冷蔵庫に追加
+                    </>
                   )}
                 </Button>
               </div>

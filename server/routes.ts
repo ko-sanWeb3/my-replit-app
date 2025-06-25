@@ -24,7 +24,7 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
   extractedItems: Array<{ name: string; category: string; quantity?: number; unit?: string }>;
 }> {
   const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
-  
+
   if (!GEMINI_API_KEY) {
     throw new Error("Gemini API key not found in environment variables. Please add GEMINI_API_KEY to Secrets.");
   }
@@ -32,7 +32,7 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
   try {
     // Convert image to base64
     const base64Image = imageBuffer.toString('base64');
-    
+
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -78,7 +78,7 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
 
     const result = await response.json();
     const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    
+
     // Extract JSON from the response
     let extractedItems = [];
     try {
@@ -148,7 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/auth/user', async (req, res) => {
     const userId = getUserIdFromRequest(req);
     await ensureUserExists(userId);
-    
+
     res.json({
       id: userId,
       email: `${userId}@example.com`,
@@ -159,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       updatedAt: new Date().toISOString()
     });
   });
-  
+
   // その他の認証ルートはdirectページにリダイレクト
   app.all('/api/login*', (req, res) => res.redirect('/direct'));
   app.all('/api/logout*', (req, res) => res.redirect('/direct'));
@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (userIdFromHeader && userIdFromHeader !== 'undefined') {
       return userIdFromHeader;
     }
-    
+
     // Fallback to generating new ID (will be saved by frontend)
     return generateUniqueUserId();
   }
@@ -206,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserIdFromRequest(req);
       await ensureUserExists(userId);
-      
+
       // Check if user already has categories
       const existingCategories = await storage.getUserCategories(userId);
       if (existingCategories.length > 0) {
@@ -264,14 +264,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserIdFromRequest(req);
       await ensureUserExists(userId);
       const { categoryId } = req.query;
-      
+
       let items;
       if (categoryId) {
         items = await storage.getFoodItemsByCategory(userId, parseInt(categoryId as string));
       } else {
         items = await storage.getAllFoodItems(userId);
       }
-      
+
       res.json(items);
     } catch (error) {
       console.error("Error fetching food items:", error);
@@ -286,13 +286,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Raw request body:", req.body);
       console.log("User ID:", userId);
       console.log("Content-Type:", req.get('Content-Type'));
-      
+
       const dataToValidate = { ...req.body, userId };
       console.log("Data to validate:", dataToValidate);
-      
+
       const itemData = insertFoodItemSchema.parse(dataToValidate);
       console.log("Validated data:", itemData);
-      
+
       const item = await storage.createFoodItem(itemData);
       res.json(item);
     } catch (error) {
@@ -318,12 +318,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.delete('/api/food-items/:id', async (req: any, res) => {
     try {
-      const { id } = req.params;
-      await storage.deleteFoodItem(parseInt(id));
-      res.json({ success: true });
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
+      const itemId = parseInt(req.params.id);
+      const success = await storage.deleteFoodItem(itemId, userId);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ message: "Food item not found" });
+      }
     } catch (error) {
       console.error("Error deleting food item:", error);
       res.status(500).json({ message: "Failed to delete food item" });
+    }
+  });
+
+  app.post('/api/food-items/batch', async (req: any, res) => {
+    try {
+      const userId = getUserIdFromRequest(req);
+      await ensureUserExists(userId);
+      const { items } = req.body;
+
+      if (!Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ message: "Items array is required" });
+      }
+
+      const results = [];
+      for (const item of items) {
+        const foodItem = await storage.createFoodItem({
+          ...item,
+          userId,
+        });
+        results.push(foodItem);
+      }
+
+      res.json({ success: true, items: results });
+    } catch (error) {
+      console.error("Error creating batch food items:", error);
+      res.status(500).json({ message: "Failed to create food items" });
     }
   });
 
@@ -346,15 +378,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserIdFromRequest(req);
       await ensureUserExists(userId);
       const allItems = await storage.getAllFoodItems(userId);
-      
+
       const getExpiryDays = (itemName: string, categoryId: number): number => {
         const name = itemName.toLowerCase();
-        
+
         // 肉類 (categoryId 4 = チルド)
         if (categoryId === 4 || name.includes('肉') || name.includes('ミンチ')) {
           return 3; // 3日
         }
-        
+
         // 野菜類
         if (categoryId === 1) {
           if (name.includes('レタス') || name.includes('小松菜') || name.includes('キャベツ')) {
@@ -371,7 +403,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           return 7; // その他野菜
         }
-        
+
         // 飲み物 (categoryId 2)
         if (categoryId === 2) {
           if (name.includes('綾鷹') || name.includes('お茶') || name.includes('ペット')) {
@@ -382,7 +414,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
           return 30; // その他飲み物
         }
-        
+
         // 果物
         if (name.includes('レモン') || name.includes('りんご')) {
           return 14; // 柑橘類・りんご 14日
@@ -390,7 +422,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (name.includes('キウイ') || name.includes('バナナ')) {
           return 7; // その他果物 7日
         }
-        
+
         return 7; // デフォルト
       };
 
@@ -398,13 +430,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       for (const item of allItems) {
         const expiryDays = getExpiryDays(item.name, item.categoryId);
         const newExpiryDate = new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        
+
         const updatedItem = await storage.updateFoodItem(item.id, {
           expiryDate: newExpiryDate
         });
         updatedItems.push(updatedItem);
       }
-      
+
       res.json({ message: "Expiry dates updated", updatedCount: updatedItems.length });
     } catch (error) {
       console.error("Error fixing expiry dates:", error);
@@ -466,14 +498,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserIdFromRequest(req);
       await ensureUserExists(userId);
-      
+
       if (!req.file) {
         return res.status(400).json({ message: "No receipt image provided" });
       }
 
       // Analyze receipt with Gemini API
       const analysis = await analyzeReceiptWithGemini(req.file.buffer);
-      
+
       // Save receipt record
       const receiptData = insertReceiptSchema.parse({
         userId,
@@ -481,9 +513,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ocrText: analysis.text,
         extractedItems: analysis.extractedItems,
       });
-      
+
       const receipt = await storage.createReceipt(receiptData);
-      
+
       res.json({
         receipt,
         extractedItems: analysis.extractedItems,
@@ -500,7 +532,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserIdFromRequest(req);
       await ensureUserExists(userId);
       const items = await storage.getAllFoodItems(userId);
-      
+
       // Calculate total nutrition (simplified calculation)
       const totalNutrition = items.reduce((acc, item) => {
         const factor = item.quantity || 1;
@@ -545,7 +577,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/community/posts", async (req, res) => {
     try {
       const { content, type = "tip", username = "匿名ユーザー" } = req.body;
-      
+
       if (!content?.trim()) {
         return res.status(400).json({ message: "Content is required" });
       }
@@ -581,7 +613,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/feedback", async (req, res) => {
     try {
       const { title, description } = req.body;
-      
+
       if (!title?.trim() || !description?.trim()) {
         return res.status(400).json({ message: "Title and description are required" });
       }
