@@ -53,7 +53,7 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
   "extractedItems": [
     {
       "name": "商品名（正確な名前）",
-      "category": "冷蔵" | "冷凍" | "野菜" | "常温",
+      "category": "冷蔵室" | "冷凍庫" | "野菜室" | "チルド" | "常温",
       "quantity": 数量（数値、デフォルト1）,
       "unit": "個" | "袋" | "本" | "パック" | "g" | "ml"
     }
@@ -63,6 +63,7 @@ async function analyzeReceiptWithGemini(imageBuffer: Buffer): Promise<{
 重要な注意事項：
 - 食品・食材のみを抽出（日用品、雑貨等は除外）
 - 商品名は正確に読み取る
+- カテゴリは必ず「冷蔵室」「冷凍庫」「野菜室」「チルド」「常温」のいずれかを選択する
 - 数量が不明な場合は1を設定
 - 最低1個以上の食材を検出するよう努める
 - レスポンスは必ずJSON形式で返す`
@@ -671,7 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userCategories = await storage.getUserCategories(userId);
       const categoryMap = new Map(userCategories.map(c => [c.name, c.id]));
 
-      // Add a default "常温" category if it doesn't exist
+      // Ensure a default "常温" category exists for fallback
       if (!categoryMap.has("常温")) {
         const newCategory = await storage.createCategory({
           name: "常温",
@@ -680,24 +681,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId,
         });
         categoryMap.set(newCategory.name, newCategory.id);
+        console.log('Created default "常温" category.');
       }
+      const defaultCategoryId = categoryMap.get("常温");
 
       // Save extracted items to foodItems table
       const createdFoodItems = [];
-      for (const item of analysis.extractedItems) {
-        const categoryId = categoryMap.get(item.category) || categoryMap.get("常温"); // Default to "常温"
-        if (categoryId) {
-          const foodItemData = {
-            userId,
-            name: item.name,
-            categoryId,
-            quantity: item.quantity || 1,
-            unit: item.unit || '個',
-            // Set a default expiry date (e.g., 7 days from now)
-            expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          };
-          const newFoodItem = await storage.createFoodItem(foodItemData);
-          createdFoodItems.push(newFoodItem);
+      if (analysis.extractedItems && analysis.extractedItems.length > 0) {
+        for (const item of analysis.extractedItems) {
+          // Find the category ID, falling back to the default "常温" category
+          const categoryId = categoryMap.get(item.category) || defaultCategoryId;
+          
+          if (categoryId) {
+            try {
+              const foodItemData = {
+                userId,
+                name: item.name,
+                categoryId,
+                quantity: item.quantity || 1,
+                unit: item.unit || '個',
+                expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              };
+              const newFoodItem = await storage.createFoodItem(foodItemData);
+              createdFoodItems.push(newFoodItem);
+            } catch (dbError) {
+              console.error(`Failed to save item "${item.name}" to database:`, dbError);
+            }
+          } else {
+            console.warn(`Could not find or create a category for item: "${item.name}"`);
+          }
         }
       }
 
