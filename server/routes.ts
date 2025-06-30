@@ -667,6 +667,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Analyze receipt with Gemini API
       const analysis = await analyzeReceiptWithGemini(req.file.buffer);
 
+      // Get user's categories to map names to IDs
+      const userCategories = await storage.getUserCategories(userId);
+      const categoryMap = new Map(userCategories.map(c => [c.name, c.id]));
+
+      // Add a default "常温" category if it doesn't exist
+      if (!categoryMap.has("常温")) {
+        const newCategory = await storage.createCategory({
+          name: "常温",
+          icon: "fas fa-box",
+          color: "#A9A9A9",
+          userId,
+        });
+        categoryMap.set(newCategory.name, newCategory.id);
+      }
+
+      // Save extracted items to foodItems table
+      const createdFoodItems = [];
+      for (const item of analysis.extractedItems) {
+        const categoryId = categoryMap.get(item.category) || categoryMap.get("常温"); // Default to "常温"
+        if (categoryId) {
+          const foodItemData = {
+            userId,
+            name: item.name,
+            categoryId,
+            quantity: item.quantity || 1,
+            unit: item.unit || '個',
+            // Set a default expiry date (e.g., 7 days from now)
+            expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          };
+          const newFoodItem = await storage.createFoodItem(foodItemData);
+          createdFoodItems.push(newFoodItem);
+        }
+      }
+
       // Save receipt record
       const receiptData = insertReceiptSchema.parse({
         userId,
@@ -680,6 +714,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         receipt,
         extractedItems: analysis.extractedItems,
+        createdFoodItems, // Return the newly created food items
       });
     } catch (error) {
       console.error("Error analyzing receipt:", error);
