@@ -28,17 +28,9 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
   const { toast } = useToast();
 
   // Fetch categories for the extracted items modal
-  const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useQuery({
+  const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useQuery<any[]>({
     queryKey: ["/api/categories"],
-    queryFn: async () => {
-      // Use the centralized api instance which includes the user ID header
-      await api.post("/api/categories/init");
-      const response = await api.get("/api/categories");
-      return response.data;
-    },
-    retry: 3,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: isOpen, // Only fetch when the modal is open
   });
 
   // Debug categories
