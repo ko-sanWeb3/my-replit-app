@@ -264,7 +264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userIdFromHeader !== 'undefined' && 
         userIdFromHeader !== 'null' && 
         userIdFromHeader.trim() !== '' &&
-        userIdFromHeader.startsWith('guest_')) {
+        (userIdFromHeader.startsWith('guest_') || userIdFromHeader.startsWith('user_'))) {
       console.log('✅ Using valid user ID from header:', userIdFromHeader);
       return userIdFromHeader;
     }
