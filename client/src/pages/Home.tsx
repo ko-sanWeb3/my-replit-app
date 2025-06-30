@@ -13,14 +13,17 @@ export default function Home() {
   // API Queries
   const { data: categories = [], isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["/api/categories"],
+    queryFn: () => api.get("/api/categories").then(res => res.data),
   });
 
   const { data: allFoodItems = [], isLoading: itemsLoading, error: itemsError } = useQuery({
     queryKey: ["/api/food-items"],
+    queryFn: () => api.get("/api/food-items").then(res => res.data),
   });
 
   const { data: shoppingItems = [] } = useQuery({
     queryKey: ["/api/shopping-items"],
+    queryFn: () => api.get("/api/shopping-items").then(res => res.data),
   });
 
   

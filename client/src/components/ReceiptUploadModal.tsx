@@ -31,33 +31,10 @@ export default function ReceiptUploadModal({ isOpen, onClose }: ReceiptUploadMod
   const { data: categories, isLoading: categoriesLoading, error: categoriesError } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: async () => {
-      try {
-        // First try to initialize categories
-        const initResponse = await fetch("/api/categories/init", {
-          method: "POST",
-          credentials: "include",
-        });
-        
-        if (!initResponse.ok) {
-          console.warn("Category initialization failed, continuing...");
-        }
-
-        // Then fetch categories
-        const response = await fetch("/api/categories", {
-          credentials: "include",
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Categories fetch failed: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log("Categories fetched:", data);
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error("Categories fetch error:", error);
-        throw error;
-      }
+      // Use the centralized api instance which includes the user ID header
+      await api.post("/api/categories/init");
+      const response = await api.get("/api/categories");
+      return response.data;
     },
     retry: 3,
     retryDelay: 1000,
