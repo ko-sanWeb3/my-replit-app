@@ -687,10 +687,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Save extracted items to foodItems table
       const createdFoodItems = [];
+      console.log(`[DIAGNOSTIC] Starting to process ${analysis.extractedItems.length} extracted items.`);
+
       if (analysis.extractedItems && analysis.extractedItems.length > 0) {
         for (const item of analysis.extractedItems) {
-          // Find the category ID, falling back to the default "常温" category
+          console.log(`[DIAGNOSTIC] Processing item: ${JSON.stringify(item)}`);
           const categoryId = categoryMap.get(item.category) || defaultCategoryId;
+          console.log(`[DIAGNOSTIC] Mapped category: "${item.category}" to categoryId: ${categoryId}`);
           
           if (categoryId) {
             try {
@@ -702,16 +705,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 unit: item.unit || '個',
                 expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
               };
+              console.log(`[DIAGNOSTIC] Attempting to save to DB: ${JSON.stringify(foodItemData)}`);
               const newFoodItem = await storage.createFoodItem(foodItemData);
               createdFoodItems.push(newFoodItem);
+              console.log(`[DIAGNOSTIC] Successfully saved item ID: ${newFoodItem.id}`);
             } catch (dbError) {
-              console.error(`Failed to save item "${item.name}" to database:`, dbError);
+              console.error(`[DIAGNOSTIC] FAILED to save item "${item.name}" to database:`, dbError);
             }
           } else {
-            console.warn(`Could not find or create a category for item: "${item.name}"`);
+            console.warn(`[DIAGNOSTIC] Could not find or create a category for item: "${item.name}"`);
           }
         }
       }
+      console.log(`[DIAGNOSTIC] Finished processing items. Total saved: ${createdFoodItems.length}`);
 
       // Save receipt record
       const receiptData = insertReceiptSchema.parse({
